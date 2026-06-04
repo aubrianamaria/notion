@@ -182,21 +182,25 @@
 
 <input type="file" id="importFile" accept="application/json" hidden />
 
-<!-- Three.js + OrbitControls via import map -->
-<script type="importmap">
-{ "imports": {
-  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-}}
-</script>
+<!-- Visible banner if any library fails to load (so buttons are never silently dead) -->
+<div id="loadErr" style="display:none;position:fixed;top:0;left:0;right:0;z-index:50;background:#7a2f2f;color:#fff;padding:10px 14px;font:14px system-ui;text-align:center">
+  Couldn't load the 3D libraries (Three.js). This page needs an internet connection the first time you open it. Reconnect and reload.
+</div>
 
+<!-- Classic (non-module) script tags: no import maps, maximum browser compatibility -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/controls/OrbitControls.js"></script>
 <!-- TensorFlow.js + COCO-SSD for in-browser furniture detection -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+<script>
+// Bail out loudly instead of silently if Three.js didn't load.
+if (typeof THREE === 'undefined') {
+  document.getElementById('loadErr').style.display = 'block';
+  throw new Error('Three.js failed to load from CDN.');
+}
+const OrbitControls = THREE.OrbitControls;
 
 /* ----------------------------------------------------------------------------
    Units & furniture catalog
@@ -213,7 +217,9 @@ const unitLabel = () => unit;
 // `coco` lists the COCO-SSD class names that map onto this furniture type.
 const CATALOG = {
   sofa:        { label: 'Sofa',         cat: 'Living', color: '#6d7fa8', w: ft(7),   d: ft(3),   h: ft(2.8), coco: ['couch'] },
+  sectional:   { label: 'Sectional',    cat: 'Living', color: '#6d7fa8', w: ft(9),   d: ft(6),   h: ft(2.8) },
   loveseat:    { label: 'Loveseat',     cat: 'Living', color: '#6d7fa8', w: ft(5),   d: ft(3),   h: ft(2.8) },
+  floor_lamp:  { label: 'Floor lamp',   cat: 'Living', color: '#c9c2a8', w: ft(1.2), d: ft(1.2), h: ft(5.4) },
   armchair:    { label: 'Armchair',     cat: 'Living', color: '#7c8bb0', w: ft(2.8), d: ft(3),   h: ft(2.8), coco: ['chair'] },
   coffee_table:{ label: 'Coffee table', cat: 'Living', color: '#9b7d5e', w: ft(4),   d: ft(2),   h: ft(1.4) },
   side_table:  { label: 'Side table',   cat: 'Living', color: '#9b7d5e', w: ft(1.5), d: ft(1.5), h: ft(2)   },
@@ -889,7 +895,7 @@ function refreshLoadList() {
 byId('saveBtn').onclick = () => saveProject(false);
 byId('loadSel').onchange = e => {
   const projs = allProjects();
-  if (projs[e.target.value]) loadSnapshot(structuredClone(projs[e.target.value]));
+  if (projs[e.target.value]) loadSnapshot(clone(projs[e.target.value]));
 };
 byId('newBtn').onclick = () => {
   if (!confirm('Start a new empty room? Unsaved changes will be lost.')) return;
@@ -942,6 +948,7 @@ byId('topViewBtn').onclick = () => {
    Helpers + render loop
 ---------------------------------------------------------------------------- */
 function byId(id) { return document.getElementById(id); }
+function clone(o) { return typeof structuredClone === 'function' ? structuredClone(o) : JSON.parse(JSON.stringify(o)); }
 function num(v) { return Math.round(v * 100) / 100; }
 function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function flash(msg) {
