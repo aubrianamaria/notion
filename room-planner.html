@@ -187,9 +187,10 @@
   Couldn't load the 3D libraries (Three.js). This page needs an internet connection the first time you open it. Reconnect and reload.
 </div>
 
-<!-- Classic (non-module) script tags: no import maps, maximum browser compatibility -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/controls/OrbitControls.js"></script>
+<!-- Classic (non-module) global builds: max compatibility, work even from a downloaded file.
+     r128 still ships both the UMD build AND the global OrbitControls file. -->
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <!-- TensorFlow.js + COCO-SSD for in-browser furniture detection -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
@@ -200,7 +201,16 @@ if (typeof THREE === 'undefined') {
   document.getElementById('loadErr').style.display = 'block';
   throw new Error('Three.js failed to load from CDN.');
 }
-const OrbitControls = THREE.OrbitControls;
+// Safety net: if the controls file ever fails to load, fall back to a no-op stub
+// so the rest of the app (and every button) keeps working instead of dying.
+let OrbitControls = THREE.OrbitControls;
+if (typeof OrbitControls !== 'function') {
+  OrbitControls = function () {
+    this.target = new THREE.Vector3();
+    this.enabled = true; this.enableDamping = false; this.maxPolarAngle = Math.PI;
+    this.update = function () {};
+  };
+}
 
 /* ----------------------------------------------------------------------------
    Units & furniture catalog
