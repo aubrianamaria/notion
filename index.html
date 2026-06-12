@@ -1,170 +1,841 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Bebas+Neue" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pantry → Plate</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #fbf7f0;
+      --card: #ffffff;
+      --ink: #2f2a25;
+      --muted: #877f74;
+      --line: #ece4d8;
+      --accent: #4c8c5a;        /* herb green */
+      --accent-soft: #e6f1e6;
+      --warn: #d98a3d;          /* warm amber */
+      --baby: #c9648a;          /* berry */
+      --baby-soft: #fbe9f0;
+      --shadow: 0 6px 20px rgba(70,55,30,.08);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Nunito', system-ui, sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 90px;
+    }
+    h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; }
 
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>greeting2</title>
+    /* ---------- Header ---------- */
+    header {
+      position: sticky; top: 0; z-index: 40;
+      background: rgba(251,247,240,.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+    }
+    .head-inner {
+      max-width: 920px; margin: 0 auto; padding: 14px 16px 10px;
+    }
+    .brand { display: flex; align-items: baseline; gap: 10px; }
+    .brand h1 { margin: 0; font-size: 1.5rem; letter-spacing: -.01em; }
+    .brand .sub { color: var(--muted); font-size: .85rem; font-weight: 600; }
 
-    <style>
+    /* goals bar */
+    .goals { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 2px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+    .goals::-webkit-scrollbar { display: none; }
+    .chip {
+      flex: 0 0 auto; cursor: pointer; user-select: none;
+      border: 1.5px solid var(--line); background: var(--card);
+      color: var(--muted); font-weight: 700; font-size: .82rem;
+      padding: 7px 13px; border-radius: 999px; white-space: nowrap;
+      transition: .15s ease;
+    }
+    .chip:hover { border-color: #d9cebd; }
+    .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .chip.baby.on { background: var(--baby); border-color: var(--baby); }
 
-        /*CSS RESETS*/
+    /* ---------- Layout ---------- */
+    main { max-width: 920px; margin: 0 auto; padding: 18px 16px 40px; }
+    .view { display: none; }
+    .view.active { display: block; animation: fade .25s ease; }
+    @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
-body{
-    background-color: #fff;
-    line-height: 1.6;
+    .view-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 14px; flex-wrap: wrap; }
+    .view-head h2 { margin: 0; font-size: 1.35rem; }
+    .count-pill { background: var(--accent-soft); color: var(--accent); font-weight: 800; font-size: .8rem; padding: 4px 11px; border-radius: 999px; }
 
-}
+    /* search + actions */
+    .toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search {
+      flex: 1 1 200px; min-width: 0; display: flex; align-items: center; gap: 8px;
+      background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 9px 13px;
+    }
+    .search input { border: none; outline: none; background: transparent; font: inherit; width: 100%; color: var(--ink); }
+    .btn {
+      cursor: pointer; border: 1.5px solid var(--line); background: var(--card); color: var(--ink);
+      font-family: inherit; font-weight: 700; font-size: .82rem; padding: 9px 13px; border-radius: 12px; transition: .15s;
+    }
+    .btn:hover { border-color: #d9cebd; }
+    .btn.ghost { color: var(--muted); }
 
-h1 {
-    margin-top: 0;
-}
+    /* staples toggle */
+    .staple-row { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .8rem; font-weight: 700; margin: -6px 0 14px; }
+    .switch { position: relative; width: 38px; height: 22px; flex: 0 0 auto; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; background: #d9cebd; border-radius: 999px; transition: .2s; cursor: pointer; }
+    .slider::before { content: ""; position: absolute; height: 16px; width: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; }
+    .switch input:checked + .slider { background: var(--accent); }
+    .switch input:checked + .slider::before { transform: translateX(16px); }
 
+    /* ---------- Aisle sections ---------- */
+    .aisle { margin-bottom: 22px; }
+    .aisle h3 { margin: 0 0 10px; font-size: 1.02rem; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+    .aisle h3 .emoji { font-size: 1.1rem; }
+    .aisle h3 small { font-family: 'Nunito'; font-weight: 700; color: var(--muted); font-size: .72rem; }
 
-/*CSS START*/
+    /* item grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+    .item {
+      position: relative; cursor: pointer; background: var(--card); border: 2px solid var(--line);
+      border-radius: 14px; overflow: hidden; transition: .15s ease; text-align: center;
+    }
+    .item:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .item.have { border-color: var(--accent); }
+    .item .thumb { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #f3ede3; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .item .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .item .thumb .fallback { font-size: 2.2rem; }
+    .item .name { font-size: .76rem; font-weight: 700; padding: 6px 4px 8px; color: var(--ink); }
+    .item .tick {
+      position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(255,255,255,.85); border: 1.5px solid var(--line); display: flex; align-items: center; justify-content: center;
+      font-size: .8rem; color: transparent; transition: .15s;
+    }
+    .item.have .tick { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-.full-table {
-    display: table;
-    height: 100%;
-    width: 100%;
-}
+    /* ---------- Meal cards ---------- */
+    .meals { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .meal {
+      background: var(--card); border: 1.5px solid var(--line); border-radius: var(--radius); overflow: hidden;
+      box-shadow: var(--shadow); display: flex; flex-direction: column; cursor: pointer; transition: .15s ease;
+    }
+    .meal:hover { transform: translateY(-3px); }
+    .meal .photo { position: relative; width: 100%; aspect-ratio: 16 / 10; background: #f3ede3; overflow: hidden; }
+    .meal .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .meal .photo .fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3rem; }
+    .meal .ready-tag {
+      position: absolute; top: 10px; left: 10px; font-size: .72rem; font-weight: 800; padding: 5px 10px; border-radius: 999px;
+      background: rgba(255,255,255,.92); color: var(--ink); box-shadow: 0 2px 6px rgba(0,0,0,.12);
+    }
+    .meal .ready-tag.ready { background: var(--accent); color: #fff; }
+    .meal .ready-tag.close { background: var(--warn); color: #fff; }
+    .meal .type-tag {
+      position: absolute; top: 10px; right: 10px; font-size: .68rem; font-weight: 800; text-transform: capitalize;
+      padding: 5px 9px; border-radius: 999px; background: rgba(47,42,37,.7); color: #fff; backdrop-filter: blur(2px);
+    }
+    .meal .body { padding: 13px 15px 16px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+    .meal h3 { margin: 0; font-size: 1.12rem; line-height: 1.2; }
+    .meal .meta { display: flex; gap: 12px; color: var(--muted); font-size: .78rem; font-weight: 700; }
+    .nutri { display: flex; flex-wrap: wrap; gap: 6px; }
+    .nutri .badge { font-size: .7rem; font-weight: 800; padding: 3px 8px; border-radius: 7px; background: #f3ede3; color: #6b6357; }
+    .nutri .badge.good { background: var(--accent-soft); color: var(--accent); }
+    .baby-flag { display: inline-flex; align-items: center; gap: 5px; font-size: .74rem; font-weight: 800; color: var(--baby); background: var(--baby-soft); padding: 4px 9px; border-radius: 8px; align-self: flex-start; }
+    .ingline { font-size: .8rem; color: var(--muted); margin-top: auto; }
+    .ingline .miss { color: var(--warn); font-weight: 800; }
+    .ingline .allset { color: var(--accent); font-weight: 800; }
 
-.table-cell {
-    display: table-cell;
-    vertical-align: middle;
-    text-align: center;
-}
+    .empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+    .empty .big { font-size: 3rem; margin-bottom: 8px; }
+    .empty h3 { color: var(--ink); margin: 0 0 6px; }
 
-.card {
-    padding: 10px 25px 10px 25px;
-    border-radius: 10px;
-    background: #553c4e;
-    width: 85vw;
-    color: #fff;
-    display: inline-block;
-    box-shadow: 2px 2px 1px 0px #330835;
-}
+    /* ---------- Modal ---------- */
+    .modal-bg { position: fixed; inset: 0; background: rgba(40,32,22,.55); display: none; align-items: flex-end; justify-content: center; z-index: 100; }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: var(--bg); width: 100%; max-width: 560px; max-height: 92vh; overflow-y: auto;
+      border-radius: 22px 22px 0 0; animation: slideup .28s ease;
+    }
+    @media (min-width: 600px) { .modal-bg { align-items: center; } .modal { border-radius: 22px; max-height: 88vh; } }
+    @keyframes slideup { from { transform: translateY(40px); opacity: .6; } to { transform: none; opacity: 1; } }
+    .modal .hero { position: relative; aspect-ratio: 16/9; background: #f3ede3; overflow: hidden; }
+    .modal .hero img { width: 100%; height: 100%; object-fit: cover; }
+    .modal .hero .fallback { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 4rem; }
+    .modal .close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,.92); font-size: 1.2rem; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+    .modal .inner { padding: 18px 20px 30px; }
+    .modal h2 { margin: 0 0 4px; font-size: 1.5rem; }
+    .modal .sub { color: var(--muted); font-weight: 700; font-size: .85rem; margin-bottom: 14px; }
+    .modal section { margin-top: 18px; }
+    .modal section h4 { font-family: 'Fraunces'; margin: 0 0 9px; font-size: 1.05rem; }
+    .ing-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+    .ing-list li { display: flex; align-items: center; gap: 9px; font-size: .9rem; padding: 7px 11px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+    .ing-list li .dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+    .ing-list li.have .dot { background: var(--accent); }
+    .ing-list li.need .dot { background: var(--warn); }
+    .ing-list li .tag-need { margin-left: auto; font-size: .7rem; font-weight: 800; color: var(--warn); }
+    .ing-list li .tag-staple { margin-left: auto; font-size: .68rem; font-weight: 700; color: var(--muted); }
+    .steps { padding-left: 20px; margin: 0; display: grid; gap: 8px; }
+    .steps li { font-size: .9rem; }
+    .baby-box { background: var(--baby-soft); border: 1px solid #f2cfdd; border-radius: 12px; padding: 13px 15px; }
+    .baby-box h4 { color: var(--baby); }
+    .baby-box p { margin: 0; font-size: .88rem; color: #7a4456; }
+    .nutri-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .nutri-grid .n { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 6px; text-align: center; }
+    .nutri-grid .n b { display: block; font-size: 1.15rem; font-family: 'Fraunces'; }
+    .nutri-grid .n span { font-size: .68rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
 
-.card:hover {
-    margin-top: 2px;
-    box-shadow: none;
-}
-
-.clock {
-    display: inline;
-    font-family: 'Bebas Neue', cursive;
-    font-size: 2em;
-   
-}
-
-.time {
-    display: inline;
-    min-width: 37px;
-}
-
-.colon {
-    font-size: 1.1em;
-    display: inline-block;
-}
-
-.date {
-    display: inline;
-    min-width: 162px;
-    font-family: 'Bebas Neue', cursive;
-    font-size: 2em;
-    padding-right: 30px;
-}
-.greet{
-    
-    display:inline;
-    font-family: 'Dancing Script', cursive;
-    font-size: 2rem;
-     padding-right: 30px;
-}
-
-    </style>
+    /* ---------- Bottom nav ---------- */
+    nav.tabs {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: rgba(255,255,255,.96); backdrop-filter: blur(10px); border-top: 1px solid var(--line);
+      display: flex; justify-content: center; gap: 6px; padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    }
+    nav.tabs button {
+      flex: 1; max-width: 200px; border: none; background: transparent; cursor: pointer; font-family: inherit;
+      color: var(--muted); font-weight: 800; font-size: .78rem; padding: 6px 4px; border-radius: 12px; transition: .15s;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    nav.tabs button .ic { font-size: 1.3rem; }
+    nav.tabs button.on { color: var(--accent); }
+    nav.tabs button.on .ic { transform: translateY(-1px); }
+    nav.tabs button .nav-badge { font-size: .62rem; background: var(--accent); color: #fff; border-radius: 999px; padding: 0 6px; font-weight: 800; }
+  </style>
 </head>
 <body>
-    <link href="https://fonts.googleapis.com/css?family=Lobster|Roboto:400,700" rel="stylesheet">
-
-<div class="full-table">
-  <div class="table-cell">
-    
-    <div class="card">
-        <div class="greet" id="greet"></div>
-      <div class="date" id="date"></div>
-      <div class="clock">
-        <div class="time" id="hour"></div>
-        <div class="colon">:</div>
-        <div class="time" id="min"></div>
-        <div class="colon">:</div>
-        <div class="time" id="sec"></div>
+  <header>
+    <div class="head-inner">
+      <div class="brand">
+        <h1>Pantry&nbsp;→&nbsp;Plate</h1>
+        <span class="sub">what's in the kitchen, what's for dinner</span>
       </div>
+      <div class="goals" id="goals"></div>
     </div>
-    
+  </header>
+
+  <main>
+    <!-- PANTRY VIEW -->
+    <section class="view" id="view-pantry">
+      <div class="view-head">
+        <h2>Your Pantry</h2>
+        <span class="count-pill" id="pantry-count">0 on hand</span>
+      </div>
+      <div class="toolbar">
+        <label class="search">
+          🔍 <input id="item-search" placeholder="Search groceries…" autocomplete="off" />
+        </label>
+        <button class="btn ghost" id="clear-pantry">Clear all</button>
+      </div>
+      <div class="staple-row">
+        <label class="switch"><input type="checkbox" id="staples-toggle" checked /><span class="slider"></span></label>
+        Assume basic staples on hand (salt, pepper, oil, water)
+      </div>
+      <div id="aisles"></div>
+    </section>
+
+    <!-- MEALS VIEW -->
+    <section class="view" id="view-meals">
+      <div class="view-head">
+        <h2>Meal Ideas</h2>
+        <span class="count-pill" id="meals-count">0 meals</span>
+      </div>
+      <div id="meals-list"></div>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-view="pantry" class="on"><span class="ic">🧺</span>Pantry</button>
+    <button data-view="meals"><span class="ic">🍽️</span><span>Meals <span class="nav-badge" id="nav-meal-badge" style="display:none">0</span></span></button>
+  </nav>
+
+  <!-- MEAL MODAL -->
+  <div class="modal-bg" id="modal-bg">
+    <div class="modal" id="modal"></div>
   </div>
-</div>
 
-<script>
-    function date() {
-var today = new Date();
-document.getElementById('date').innerHTML = today.toDateString();
-}
+  <script>
+  /* =========================================================
+     DATA — grocery items
+     img keyword feeds a stable stock photo; emoji is fallback
+     staple:true  → assumed on hand when the staples toggle is on
+     ========================================================= */
+  const AISLES = [
+    { id: 'produce',  name: 'Produce',        emoji: '🥬' },
+    { id: 'protein',  name: 'Proteins',       emoji: '🍗' },
+    { id: 'dairy',    name: 'Dairy & Eggs',   emoji: '🧀' },
+    { id: 'grain',    name: 'Grains & Bread', emoji: '🍞' },
+    { id: 'pantry',   name: 'Pantry',         emoji: '🥫' },
+    { id: 'spice',    name: 'Spices & Basics', emoji: '🧂' },
+  ];
 
+  const ITEMS = [
+    // produce
+    { id:'banana', name:'Banana', aisle:'produce', emoji:'🍌', kw:'banana' },
+    { id:'apple', name:'Apple', aisle:'produce', emoji:'🍎', kw:'apple' },
+    { id:'avocado', name:'Avocado', aisle:'produce', emoji:'🥑', kw:'avocado' },
+    { id:'spinach', name:'Spinach', aisle:'produce', emoji:'🥬', kw:'spinach' },
+    { id:'broccoli', name:'Broccoli', aisle:'produce', emoji:'🥦', kw:'broccoli' },
+    { id:'carrot', name:'Carrots', aisle:'produce', emoji:'🥕', kw:'carrots' },
+    { id:'sweetpotato', name:'Sweet Potato', aisle:'produce', emoji:'🍠', kw:'sweet-potato' },
+    { id:'potato', name:'Potato', aisle:'produce', emoji:'🥔', kw:'potato' },
+    { id:'tomato', name:'Tomato', aisle:'produce', emoji:'🍅', kw:'tomato' },
+    { id:'onion', name:'Onion', aisle:'produce', emoji:'🧅', kw:'onion' },
+    { id:'garlic', name:'Garlic', aisle:'produce', emoji:'🧄', kw:'garlic', staple:true },
+    { id:'bellpepper', name:'Bell Pepper', aisle:'produce', emoji:'🫑', kw:'bell-pepper' },
+    { id:'zucchini', name:'Zucchini', aisle:'produce', emoji:'🥒', kw:'zucchini' },
+    { id:'cucumber', name:'Cucumber', aisle:'produce', emoji:'🥒', kw:'cucumber' },
+    { id:'lemon', name:'Lemon', aisle:'produce', emoji:'🍋', kw:'lemon' },
+    { id:'lime', name:'Lime', aisle:'produce', emoji:'🍈', kw:'lime' },
+    { id:'berries', name:'Berries', aisle:'produce', emoji:'🫐', kw:'berries' },
+    { id:'mushroom', name:'Mushrooms', aisle:'produce', emoji:'🍄', kw:'mushrooms' },
+    { id:'peas', name:'Frozen Peas', aisle:'produce', emoji:'🟢', kw:'green-peas' },
+    { id:'corn', name:'Corn', aisle:'produce', emoji:'🌽', kw:'corn' },
+    { id:'lettuce', name:'Lettuce', aisle:'produce', emoji:'🥗', kw:'lettuce' },
+    // protein
+    { id:'chicken', name:'Chicken Breast', aisle:'protein', emoji:'🍗', kw:'chicken-breast' },
+    { id:'turkey', name:'Ground Turkey', aisle:'protein', emoji:'🦃', kw:'ground-turkey' },
+    { id:'beef', name:'Ground Beef', aisle:'protein', emoji:'🥩', kw:'ground-beef' },
+    { id:'salmon', name:'Salmon', aisle:'protein', emoji:'🐟', kw:'salmon' },
+    { id:'whitefish', name:'White Fish', aisle:'protein', emoji:'🐠', kw:'cod-fish' },
+    { id:'shrimp', name:'Shrimp', aisle:'protein', emoji:'🦐', kw:'shrimp' },
+    { id:'tuna', name:'Canned Tuna', aisle:'protein', emoji:'🐟', kw:'canned-tuna' },
+    { id:'eggs', name:'Eggs', aisle:'protein', emoji:'🥚', kw:'eggs' },
+    { id:'tofu', name:'Tofu', aisle:'protein', emoji:'⬜', kw:'tofu' },
+    { id:'blackbeans', name:'Black Beans', aisle:'protein', emoji:'🫘', kw:'black-beans' },
+    { id:'chickpeas', name:'Chickpeas', aisle:'protein', emoji:'🟤', kw:'chickpeas' },
+    { id:'lentils', name:'Lentils', aisle:'protein', emoji:'🟠', kw:'lentils' },
+    // dairy
+    { id:'milk', name:'Milk', aisle:'dairy', emoji:'🥛', kw:'milk' },
+    { id:'yogurt', name:'Greek Yogurt', aisle:'dairy', emoji:'🥣', kw:'greek-yogurt' },
+    { id:'cheddar', name:'Cheddar', aisle:'dairy', emoji:'🧀', kw:'cheddar-cheese' },
+    { id:'mozzarella', name:'Mozzarella', aisle:'dairy', emoji:'🧀', kw:'mozzarella' },
+    { id:'parmesan', name:'Parmesan', aisle:'dairy', emoji:'🧀', kw:'parmesan' },
+    { id:'creamcheese', name:'Cream Cheese', aisle:'dairy', emoji:'🧀', kw:'cream-cheese' },
+    { id:'butter', name:'Butter', aisle:'dairy', emoji:'🧈', kw:'butter', staple:true },
+    // grain
+    { id:'rice', name:'White Rice', aisle:'grain', emoji:'🍚', kw:'white-rice' },
+    { id:'brownrice', name:'Brown Rice', aisle:'grain', emoji:'🍚', kw:'brown-rice' },
+    { id:'pasta', name:'Pasta', aisle:'grain', emoji:'🍝', kw:'pasta' },
+    { id:'oats', name:'Oats', aisle:'grain', emoji:'🥣', kw:'oats' },
+    { id:'bread', name:'Bread', aisle:'grain', emoji:'🍞', kw:'bread' },
+    { id:'tortilla', name:'Tortillas', aisle:'grain', emoji:'🫓', kw:'tortilla' },
+    { id:'quinoa', name:'Quinoa', aisle:'grain', emoji:'🌾', kw:'quinoa' },
+    { id:'couscous', name:'Couscous', aisle:'grain', emoji:'🟡', kw:'couscous' },
+    // pantry
+    { id:'oliveoil', name:'Olive Oil', aisle:'pantry', emoji:'🫒', kw:'olive-oil', staple:true },
+    { id:'soysauce', name:'Soy Sauce', aisle:'pantry', emoji:'🍶', kw:'soy-sauce' },
+    { id:'peanutbutter', name:'Peanut Butter', aisle:'pantry', emoji:'🥜', kw:'peanut-butter' },
+    { id:'honey', name:'Honey', aisle:'pantry', emoji:'🍯', kw:'honey' },
+    { id:'maple', name:'Maple Syrup', aisle:'pantry', emoji:'🍁', kw:'maple-syrup' },
+    { id:'cantomato', name:'Canned Tomatoes', aisle:'pantry', emoji:'🥫', kw:'canned-tomatoes' },
+    { id:'pastasauce', name:'Pasta Sauce', aisle:'pantry', emoji:'🥫', kw:'marinara-sauce' },
+    { id:'coconutmilk', name:'Coconut Milk', aisle:'pantry', emoji:'🥥', kw:'coconut-milk' },
+    { id:'broth', name:'Broth/Stock', aisle:'pantry', emoji:'🍲', kw:'broth', staple:true },
+    { id:'flour', name:'Flour', aisle:'pantry', emoji:'🌾', kw:'flour', staple:true },
+    { id:'currypaste', name:'Curry Paste', aisle:'pantry', emoji:'🍛', kw:'curry-paste' },
+    // spice / basics
+    { id:'salt', name:'Salt', aisle:'spice', emoji:'🧂', kw:'salt', staple:true },
+    { id:'pepper', name:'Black Pepper', aisle:'spice', emoji:'⚫', kw:'black-pepper', staple:true },
+    { id:'cinnamon', name:'Cinnamon', aisle:'spice', emoji:'🟤', kw:'cinnamon', staple:true },
+    { id:'paprika', name:'Paprika', aisle:'spice', emoji:'🌶️', kw:'paprika', staple:true },
+    { id:'cumin', name:'Cumin', aisle:'spice', emoji:'🟤', kw:'cumin', staple:true },
+    { id:'basil', name:'Basil', aisle:'spice', emoji:'🌿', kw:'basil', staple:true },
+    { id:'gingerroot', name:'Ginger', aisle:'spice', emoji:'🫚', kw:'ginger', staple:true },
+  ];
+  const ITEM_BY_ID = Object.fromEntries(ITEMS.map(i => [i.id, i]));
 
-function clock() {
-var today = new Date();
-var hour = zeros(twelveHour(today.getHours()));
-var minutes = zeros(today.getMinutes());
-var seconds = zeros(today.getSeconds());
-if(today.getHours() >=12){
-    seconds+=" pm"
-}
-else{
-    seconds+=" am"
-}
-hrs = today.getHours();
-if (hrs < 12)
-        greet = 'Good Morning My Dear!';
-    else if (hrs >= 12 && hrs <= 17)
-        greet = 'Good Afternoon Aubriana!';
-    else if (hrs >= 17 && hrs <= 24)
-        greet = 'Good Evening Gorgeous!';
-// console.log(today.toLocaleTimeString());
-document.getElementById('greet').innerHTML = greet;
-document.getElementById('hour').innerHTML = hour;
-document.getElementById('min').innerHTML = minutes;
-document.getElementById('sec').innerHTML = seconds;
-}
+  /* =========================================================
+     DATA — meals
+     ing: pantry item ids that count toward the match
+     nutrition is per serving
+     baby: { ok, note }  — note covers safe prep / portioning
+     ========================================================= */
+  const MEALS = [
+    {
+      id:'oatmeal', name:'Banana Oatmeal', type:'breakfast', time:10, servings:2, emoji:'🥣', kw:'oatmeal-banana',
+      ing:['oats','banana','milk','cinnamon'],
+      nutri:{ kcal:280, protein:9, sodium:60, fiber:6 }, veg:true,
+      baby:{ ok:true, note:'Perfect first-year breakfast. Cook soft, serve lukewarm, and mash the banana into the oats so there are no slippery pieces. Skip any added sugar — the banana sweetens it.' },
+      steps:['Simmer oats with milk (or water) until creamy, ~5 min.','Mash in half a banana and a pinch of cinnamon.','Top with sliced banana for the grown-ups.']
+    },
+    {
+      id:'scrambled', name:'Veggie Scramble', type:'breakfast', time:12, servings:2, emoji:'🍳', kw:'scrambled-eggs-vegetables',
+      ing:['eggs','spinach','tomato','cheddar','butter'],
+      nutri:{ kcal:240, protein:18, sodium:320, fiber:2 }, veg:true,
+      baby:{ ok:true, note:'Well-cooked eggs are a great protein + a common allergen to introduce early. Cut into pea-sized soft curds or strips she can pick up. Go easy on the cheese for salt.' },
+      steps:['Wilt spinach and diced tomato in a little butter.','Pour in beaten eggs, stir gently on low heat.','Fold in cheddar just before they set.']
+    },
+    {
+      id:'yogurtbowl', name:'Berry Yogurt Bowl', type:'breakfast', time:5, servings:1, emoji:'🍓', kw:'yogurt-berries-bowl',
+      ing:['yogurt','berries','oats','honey'],
+      nutri:{ kcal:260, protein:17, sodium:70, fiber:5 }, veg:true,
+      baby:{ ok:true, note:'Plain whole-milk yogurt is ideal for her — skip the honey in her portion (fine now that she is 1, but not needed) and mash or quarter the berries to avoid choking.' },
+      steps:['Spoon yogurt into a bowl.','Top with berries and a sprinkle of oats.','Drizzle honey over the adult portions.']
+    },
+    {
+      id:'pbtoast', name:'PB & Banana Toast', type:'breakfast', time:5, servings:1, emoji:'🍞', kw:'peanut-butter-toast',
+      ing:['bread','peanutbutter','banana'],
+      nutri:{ kcal:320, protein:11, sodium:240, fiber:5 }, veg:true,
+      baby:{ ok:true, note:'Spread peanut butter THIN — a thick layer is a choking hazard. Cut toast into finger strips and add smashed banana. Good way to keep peanut in her diet after introduction.' },
+      steps:['Toast the bread.','Spread a thin layer of peanut butter.','Top with banana coins.']
+    },
+    {
+      id:'frittata', name:'Sweet Potato Frittata', type:'breakfast', time:30, servings:4, emoji:'🥧', kw:'frittata',
+      ing:['eggs','sweetpotato','spinach','onion','cheddar'],
+      nutri:{ kcal:230, protein:14, sodium:280, fiber:3 }, veg:true,
+      baby:{ ok:true, note:'A make-ahead winner for 3-meals-a-day. Soft, holds together, and reheats well. Cut into small fingers; the sweet potato makes it easy to gum.' },
+      steps:['Sauté diced sweet potato and onion until soft.','Add spinach, then pour over 8 beaten eggs.','Top with cheese and bake at 375°F for ~18 min until set.']
+    },
 
-function twelveHour(hour) {
-if (hour > 12) {
-    return hour -= 12 
-} else if (hour === 0) {
-    return hour = 12;
-} else {
-    return hour
-}
-}
-    
-// adds zero infront of single digit number
-function zeros(num) {
-if (num < 10) {
-    num = '0' + num
-};
-return num;
-}
+    {
+      id:'chickrice', name:'Chicken & Veg Rice Bowl', type:'dinner', time:30, servings:4, emoji:'🍛', kw:'chicken-rice-bowl',
+      ing:['chicken','rice','broccoli','carrot','soysauce','garlic'],
+      nutri:{ kcal:430, protein:34, sodium:520, fiber:4 },
+      baby:{ ok:true, note:'Pull her portion BEFORE adding soy sauce (too much sodium for babies). Shred the chicken finely and chop the veg small and soft.' },
+      steps:['Cook rice.','Sear diced chicken with garlic.','Add chopped broccoli and carrot, splash of soy sauce, steam until tender.','Serve over rice.']
+    },
+    {
+      id:'salmonbowl', name:'Honey Salmon & Quinoa', type:'dinner', time:25, servings:3, emoji:'🐟', kw:'baked-salmon-quinoa',
+      ing:['salmon','quinoa','broccoli','honey','soysauce','lemon'],
+      nutri:{ kcal:460, protein:36, sodium:430, fiber:5 },
+      baby:{ ok:true, note:'Salmon is a brain-food superstar for babies (omega-3s). Flake it carefully to remove any bones, then mash with a little quinoa. Reserve her piece before glazing with honey/soy.' },
+      steps:['Cook quinoa.','Whisk honey, soy, and lemon; brush over salmon.','Bake salmon at 400°F ~12 min; steam broccoli.','Plate together.']
+    },
+    {
+      id:'turkeychili', name:'Turkey & Bean Chili', type:'dinner', time:40, servings:6, emoji:'🌶️', kw:'turkey-chili',
+      ing:['turkey','blackbeans','cantomato','onion','bellpepper','cumin','paprika'],
+      nutri:{ kcal:340, protein:28, sodium:480, fiber:9 },
+      baby:{ ok:true, note:'Mash a scoop until thick and lumpy — perfect spoon practice. Make her batch mild (skip extra salt/spice) and the beans give great iron + fiber.' },
+      steps:['Brown turkey with onion and pepper.','Stir in beans, tomatoes, cumin and paprika.','Simmer 25 min until thick.']
+    },
+    {
+      id:'pastapom', name:'Tomato Basil Pasta', type:'dinner', time:20, servings:4, emoji:'🍝', kw:'tomato-pasta',
+      ing:['pasta','pastasauce','garlic','parmesan','basil'],
+      nutri:{ kcal:380, protein:13, sodium:560, fiber:4 }, veg:true,
+      baby:{ ok:true, note:'Use small shapes (orzo, mini shells) or cut long pasta into short pieces. Sauce it lightly — jarred sauce is salty, so thin hers with a splash of water.' },
+      steps:['Boil pasta.','Warm sauce with garlic and basil.','Toss and finish with parmesan.']
+    },
+    {
+      id:'stirfrytofu', name:'Tofu Veggie Stir-Fry', type:'dinner', time:25, servings:3, emoji:'🥢', kw:'tofu-stir-fry',
+      ing:['tofu','bellpepper','broccoli','carrot','soysauce','rice','gingerroot'],
+      nutri:{ kcal:360, protein:20, sodium:540, fiber:6 }, veg:true,
+      baby:{ ok:true, note:'Tofu is soft and easy for her to self-feed in cubes. Keep her veg very tender and serve before the soy goes in.' },
+      steps:['Crisp cubed tofu in a hot pan.','Add ginger, garlic, and chopped veg.','Splash soy sauce; serve over rice.']
+    },
+    {
+      id:'fishtacos', name:'White Fish Tacos', type:'dinner', time:25, servings:3, emoji:'🌮', kw:'fish-tacos',
+      ing:['whitefish','tortilla','lettuce','lime','yogurt','paprika'],
+      nutri:{ kcal:390, protein:29, sodium:430, fiber:4 },
+      baby:{ ok:true, note:'Flake the fish (check for bones), warm a torn piece of tortilla, and let her gum soft strips. Skip the raw lettuce for her.' },
+      steps:['Season fish with paprika; pan-sear.','Warm tortillas.','Build with flaked fish, lettuce, a squeeze of lime and yogurt drizzle.']
+    },
+    {
+      id:'curry', name:'Chickpea Coconut Curry', type:'dinner', time:30, servings:4, emoji:'🍛', kw:'chickpea-curry',
+      ing:['chickpeas','coconutmilk','cantomato','onion','currypaste','rice','gingerroot'],
+      nutri:{ kcal:410, protein:13, sodium:460, fiber:8 }, veg:true,
+      baby:{ ok:true, note:'Use a mild curry paste and go light. Mash the chickpeas (whole ones are a choking risk) into the sauce and spoon over soft rice.' },
+      steps:['Sauté onion, ginger, and curry paste.','Add chickpeas, tomatoes, and coconut milk.','Simmer 15 min; serve over rice.']
+    },
+    {
+      id:'beefbowl', name:'Beef & Broccoli Bowl', type:'dinner', time:25, servings:4, emoji:'🥩', kw:'beef-broccoli',
+      ing:['beef','broccoli','rice','soysauce','garlic','gingerroot'],
+      nutri:{ kcal:440, protein:31, sodium:580, fiber:3 },
+      baby:{ ok:true, note:'Beef is one of the best iron sources for her age. Use finely ground or well-chopped beef, soft broccoli florets, and reserve her bowl before the soy.' },
+      steps:['Brown beef with garlic and ginger.','Add broccoli, steam tender.','Sauce with soy; serve over rice.']
+    },
+    {
+      id:'shrimppasta', name:'Garlic Lemon Shrimp Pasta', type:'dinner', time:20, servings:3, emoji:'🍤', kw:'shrimp-pasta',
+      ing:['shrimp','pasta','garlic','lemon','parmesan','oliveoil'],
+      nutri:{ kcal:420, protein:28, sodium:470, fiber:3 },
+      baby:{ ok:true, note:'Shellfish is a top allergen — introduce a small taste on its own first if she has not had it. Chop shrimp finely; it can be rubbery, so cook just until tender.' },
+      steps:['Boil pasta.','Sauté shrimp in olive oil and garlic.','Toss with lemon, pasta, and parmesan.']
+    },
+    {
+      id:'lentilsoup', name:'Hearty Lentil Soup', type:'dinner', time:40, servings:6, emoji:'🍲', kw:'lentil-soup',
+      ing:['lentils','carrot','onion','cantomato','broth','cumin','garlic'],
+      nutri:{ kcal:260, protein:15, sodium:420, fiber:11 }, veg:true,
+      baby:{ ok:true, note:'Lentils are gentle, iron-rich, and naturally soft — ideal for her. Blend or mash a portion to a thick purée and let it cool before serving.' },
+      steps:['Sauté onion, carrot, garlic.','Add lentils, tomatoes, broth, cumin.','Simmer 30 min until lentils are soft.']
+    },
+    {
+      id:'roastchicken', name:'Sheet-Pan Chicken & Veg', type:'dinner', time:40, servings:4, emoji:'🍗', kw:'roast-chicken-vegetables',
+      ing:['chicken','sweetpotato','broccoli','oliveoil','paprika','garlic'],
+      nutri:{ kcal:400, protein:35, sodium:360, fiber:5 },
+      baby:{ ok:true, note:'One pan, easy cleanup, baby-friendly. Roasted sweet potato is soft enough to squish; dice chicken small. Skip salt on her section of the pan.' },
+      steps:['Toss chicken and veg with oil, paprika, garlic.','Spread on a sheet pan.','Roast at 425°F for ~25 min.']
+    },
+    {
+      id:'eggfriedrice', name:'Egg Fried Rice', type:'dinner', time:20, servings:3, emoji:'🍚', kw:'egg-fried-rice',
+      ing:['rice','eggs','peas','carrot','soysauce','garlic'],
+      nutri:{ kcal:350, protein:14, sodium:520, fiber:3 }, veg:true,
+      baby:{ ok:true, note:'A fantastic way to use leftover rice. Make sure rice is soft and not too sticky-clumpy for her; pull her portion before the soy sauce.' },
+      steps:['Scramble eggs, set aside.','Fry cold rice with peas, carrot, garlic.','Add eggs and a splash of soy.']
+    },
 
-function dateTime() {
-date();
-clock();
-setTimeout(dateTime, 500);
-}
+    {
+      id:'tunamelt', name:'Tuna Melt', type:'lunch', time:12, servings:2, emoji:'🥪', kw:'tuna-melt-sandwich',
+      ing:['tuna','bread','cheddar','yogurt'],
+      nutri:{ kcal:360, protein:27, sodium:540, fiber:2 },
+      baby:{ ok:true, note:'Canned light tuna is fine in small amounts (lower mercury than albacore). Mix with yogurt instead of mayo, mash well, and serve open on soft bread strips.' },
+      steps:['Mix tuna with a spoon of yogurt.','Pile on bread, top with cheddar.','Toast until melty.']
+    },
+    {
+      id:'quesadilla', name:'Bean & Cheese Quesadilla', type:'lunch', time:12, servings:2, emoji:'🫓', kw:'quesadilla',
+      ing:['tortilla','blackbeans','cheddar','bellpepper'],
+      nutri:{ kcal:340, protein:16, sodium:520, fiber:7 }, veg:true,
+      baby:{ ok:true, note:'A toddler classic. Mash the beans so they bind, cook until the cheese glues it together, then cut into small strips she can hold.' },
+      steps:['Mash beans onto a tortilla.','Add cheese and diced pepper, fold.','Toast both sides; slice into wedges.']
+    },
+    {
+      id:'caprese', name:'Caprese Pasta Salad', type:'lunch', time:18, servings:4, emoji:'🥗', kw:'caprese-pasta-salad',
+      ing:['pasta','tomato','mozzarella','basil','oliveoil'],
+      nutri:{ kcal:330, protein:13, sodium:300, fiber:3 }, veg:true,
+      baby:{ ok:true, note:'Quarter the tomatoes and cherry-sized mozzarella balls (whole ones are round choking hazards). Use small soft pasta.' },
+      steps:['Boil and cool pasta.','Toss with halved tomatoes, torn mozzarella, basil.','Dress with olive oil.']
+    },
+    {
+      id:'avotoast', name:'Avocado Egg Toast', type:'lunch', time:8, servings:1, emoji:'🥑', kw:'avocado-toast-egg',
+      ing:['bread','avocado','eggs','lemon'],
+      nutri:{ kcal:340, protein:15, sodium:300, fiber:6 }, veg:true,
+      baby:{ ok:true, note:'Avocado is one of the best early foods — healthy fats and easy to gum. Mash onto soft bread fingers; add chopped egg for protein.' },
+      steps:['Toast bread.','Mash avocado with a squeeze of lemon.','Top with a fried or chopped egg.']
+    },
+    {
+      id:'soupgrill', name:'Tomato Soup & Grilled Cheese', type:'lunch', time:20, servings:2, emoji:'🍅', kw:'tomato-soup-grilled-cheese',
+      ing:['cantomato','broth','bread','cheddar','butter','basil'],
+      nutri:{ kcal:420, protein:14, sodium:620, fiber:4 }, veg:true,
+      baby:{ ok:true, note:'Cut the grilled cheese into dippable strips. Cool the soup well and offer a few spoonfuls — keep her portion lightly salted.' },
+      steps:['Simmer tomatoes with broth and basil; blend smooth.','Butter bread, add cheddar, grill until golden.','Serve with the soup.']
+    },
+    {
+      id:'chickpeasalad', name:'Lemon Couscous & Chickpeas', type:'lunch', time:15, servings:3, emoji:'🥗', kw:'couscous-chickpea-salad',
+      ing:['couscous','chickpeas','cucumber','lemon','oliveoil','tomato'],
+      nutri:{ kcal:350, protein:12, sodium:240, fiber:7 }, veg:true,
+      baby:{ ok:true, note:'Mash the chickpeas and finely dice the cucumber and tomato. Couscous is tiny and soft — great for practicing the pincer grasp.' },
+      steps:['Pour boiling water over couscous, fluff after 5 min.','Stir in chickpeas, diced cucumber and tomato.','Dress with lemon and olive oil.']
+    },
 
-dateTime()
-// END
-</script>
+    {
+      id:'smoothie', name:'Berry Banana Smoothie', type:'snack', time:5, servings:2, emoji:'🥤', kw:'berry-smoothie',
+      ing:['banana','berries','yogurt','milk'],
+      nutri:{ kcal:180, protein:9, sodium:80, fiber:4 }, veg:true,
+      baby:{ ok:true, note:'Serve hers in an open cup or spoon it like a thick purée rather than a bottle. A great way to pack in fruit and calcium.' },
+      steps:['Blend banana, berries, yogurt, and milk until smooth.','Pour and serve cold.']
+    },
+    {
+      id:'hummusplate', name:'Veggie & Hummus Plate', type:'snack', time:10, servings:2, emoji:'🥕', kw:'hummus-vegetables',
+      ing:['chickpeas','oliveoil','lemon','carrot','cucumber'],
+      nutri:{ kcal:210, protein:8, sodium:220, fiber:6 }, veg:true,
+      baby:{ ok:true, note:'Blend a quick hummus from the chickpeas. Steam the carrot sticks soft (raw carrot is a choking hazard) and cut cucumber into thin strips.' },
+      steps:['Blend chickpeas, olive oil, lemon, and a splash of water.','Steam carrot sticks until tender.','Serve with cucumber for dipping.']
+    },
+    {
+      id:'bananamuffin', name:'Banana Oat Bites', type:'snack', time:25, servings:12, emoji:'🧁', kw:'banana-oat-muffins',
+      ing:['banana','oats','eggs','cinnamon','milk'],
+      nutri:{ kcal:90, protein:3, sodium:30, fiber:2 }, veg:true,
+      baby:{ ok:true, note:'No added sugar — sweetened only by banana. Soft and self-feedable. Make a batch for grab-and-go toddler snacks all week.' },
+      steps:['Blend banana, oats, egg, milk, cinnamon.','Spoon into a mini muffin tin.','Bake at 350°F for ~15 min.']
+    },
+    {
+      id:'cheesetoast', name:'Cheesy Veggie Toast', type:'snack', time:8, servings:2, emoji:'🧀', kw:'cheese-toast',
+      ing:['bread','cheddar','tomato'],
+      nutri:{ kcal:230, protein:11, sodium:380, fiber:2 }, veg:true,
+      baby:{ ok:true, note:'Melt cheese on soft bread, add finely diced tomato, and cut into strips. Quick, warm, and easy for little hands.' },
+      steps:['Top bread with cheese and diced tomato.','Broil until bubbly.','Cut into fingers.']
+    },
+  ];
 
+  /* =========================================================
+     STATE + persistence
+     ========================================================= */
+  const LS_HAVE = 'p2p_have_v1';
+  const LS_STAPLES = 'p2p_staples_v1';
+  let have = new Set(JSON.parse(localStorage.getItem(LS_HAVE) || '[]'));
+  let assumeStaples = JSON.parse(localStorage.getItem(LS_STAPLES) ?? 'true');
+  let activeGoals = new Set();
+  let itemFilter = '';
+  let currentView = 'pantry';
+
+  const GOALS = [
+    { id:'highprotein', label:'💪 High protein', test:m => m.nutri.protein >= 25 },
+    { id:'lowcal',      label:'🔥 Low calorie',  test:m => m.nutri.kcal <= 380 },
+    { id:'lowsodium',   label:'🧂 Low sodium',   test:m => m.nutri.sodium <= 400 },
+    { id:'highfiber',   label:'🌾 High fiber',   test:m => m.nutri.fiber >= 6 },
+    { id:'veg',         label:'🌱 Vegetarian',   test:m => !!m.veg },
+    { id:'quick',       label:'⚡ Quick (≤20m)', test:m => m.time <= 20 },
+    { id:'baby',        label:'👶 For baby',     test:m => m.baby && m.baby.ok, baby:true },
+  ];
+
+  function save() {
+    localStorage.setItem(LS_HAVE, JSON.stringify([...have]));
+    localStorage.setItem(LS_STAPLES, JSON.stringify(assumeStaples));
+  }
+  function imgUrl(item, w) {
+    // stable keyword stock photo (loremflickr); lock keeps it consistent per item
+    const seed = Math.abs([...item.id].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7)) % 9999;
+    return `https://loremflickr.com/${w}/${w}/${item.kw}?lock=${seed}`;
+  }
+  function mealImg(m, w, h) {
+    const seed = Math.abs([...m.id].reduce((a,c)=>a*31+c.charCodeAt(0)|0,7)) % 9999;
+    return `https://loremflickr.com/${w}/${h}/${encodeURIComponent(m.kw)},food?lock=${seed}`;
+  }
+
+  /* a pantry item counts as "have" if checked, or if it's a staple and the toggle is on */
+  function hasItem(id) {
+    if (have.has(id)) return true;
+    if (assumeStaples && ITEM_BY_ID[id] && ITEM_BY_ID[id].staple) return true;
+    return false;
+  }
+
+  function mealStatus(m) {
+    const total = m.ing.length;
+    const haveCount = m.ing.filter(hasItem).length;
+    const missing = m.ing.filter(id => !hasItem(id));
+    return { total, haveCount, missing, ratio: total ? haveCount/total : 0, ready: missing.length === 0 };
+  }
+
+  /* =========================================================
+     RENDER — goals bar
+     ========================================================= */
+  function renderGoals() {
+    const el = document.getElementById('goals');
+    el.innerHTML = '';
+    GOALS.forEach(g => {
+      const c = document.createElement('div');
+      c.className = 'chip' + (g.baby ? ' baby' : '') + (activeGoals.has(g.id) ? ' on' : '');
+      c.textContent = g.label;
+      c.onclick = () => {
+        activeGoals.has(g.id) ? activeGoals.delete(g.id) : activeGoals.add(g.id);
+        renderGoals(); renderMeals();
+      };
+      el.appendChild(c);
+    });
+  }
+
+  /* =========================================================
+     RENDER — pantry
+     ========================================================= */
+  function renderPantry() {
+    const wrap = document.getElementById('aisles');
+    wrap.innerHTML = '';
+    const q = itemFilter.trim().toLowerCase();
+
+    AISLES.forEach(aisle => {
+      const items = ITEMS.filter(i => i.aisle === aisle.id && (!q || i.name.toLowerCase().includes(q)));
+      if (!items.length) return;
+      const sec = document.createElement('div');
+      sec.className = 'aisle';
+      const haveN = items.filter(i => have.has(i.id)).length;
+      sec.innerHTML = `<h3><span class="emoji">${aisle.emoji}</span> ${aisle.name} <small>${haveN}/${items.length}</small></h3>`;
+      const grid = document.createElement('div');
+      grid.className = 'grid';
+      items.forEach(i => grid.appendChild(itemCard(i)));
+      sec.appendChild(grid);
+      wrap.appendChild(sec);
+    });
+
+    if (!wrap.children.length) {
+      wrap.innerHTML = `<div class="empty"><div class="big">🔍</div><h3>No matches</h3><p>Nothing matches “${itemFilter}”.</p></div>`;
+    }
+    document.getElementById('pantry-count').textContent = `${have.size} on hand`;
+  }
+
+  function itemCard(i) {
+    const card = document.createElement('div');
+    card.className = 'item' + (have.has(i.id) ? ' have' : '');
+    card.innerHTML = `
+      <div class="thumb">
+        <span class="fallback">${i.emoji}</span>
+        <img alt="${i.name}" loading="lazy" src="${imgUrl(i,120)}"
+             onload="this.style.opacity=1" style="opacity:0;transition:.3s"
+             onerror="this.remove()" />
+        <div class="tick">✓</div>
+      </div>
+      <div class="name">${i.name}</div>`;
+    card.onclick = () => {
+      have.has(i.id) ? have.delete(i.id) : have.add(i.id);
+      save();
+      card.classList.toggle('have');
+      updateCounts();
+    };
+    return card;
+  }
+
+  /* =========================================================
+     RENDER — meals
+     ========================================================= */
+  function renderMeals() {
+    const list = document.getElementById('meals-list');
+    list.innerHTML = '';
+
+    let meals = MEALS.slice();
+    // apply goal filters
+    GOALS.forEach(g => { if (activeGoals.has(g.id)) meals = meals.filter(g.test); });
+
+    // attach status, sort by readiness then ratio then fewer missing
+    meals = meals.map(m => ({ m, s: mealStatus(m) }))
+                 .sort((a,b) => (b.s.ratio - a.s.ratio) || (a.s.missing.length - b.s.missing.length) || (a.m.time - b.m.time));
+
+    const readyN = meals.filter(x => x.s.ready).length;
+    document.getElementById('meals-count').textContent =
+      `${meals.length} meal${meals.length!==1?'s':''}${readyN ? ' · ' + readyN + ' ready' : ''}`;
+
+    if (!meals.length) {
+      list.innerHTML = `<div class="empty"><div class="big">🍽️</div><h3>No meals match those goals</h3><p>Try turning off a filter or checking more pantry items.</p></div>`;
+      return;
+    }
+    if (have.size === 0 && assumeStaples === false) {
+      // still render, just a gentle nudge handled by ingline
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'meals';
+    meals.forEach(({m,s}) => grid.appendChild(mealCard(m,s)));
+    list.appendChild(grid);
+  }
+
+  function badges(m) {
+    const out = [];
+    out.push(`<span class="badge ${m.nutri.protein>=25?'good':''}">${m.nutri.protein}g protein</span>`);
+    out.push(`<span class="badge ${m.nutri.kcal<=380?'good':''}">${m.nutri.kcal} cal</span>`);
+    out.push(`<span class="badge ${m.nutri.sodium<=400?'good':''}">${m.nutri.sodium}mg Na</span>`);
+    out.push(`<span class="badge ${m.nutri.fiber>=6?'good':''}">${m.nutri.fiber}g fiber</span>`);
+    return out.join('');
+  }
+
+  function mealCard(m, s) {
+    const card = document.createElement('div');
+    card.className = 'meal';
+    let tag, cls;
+    if (s.ready) { tag = '✓ Ready to cook'; cls = 'ready'; }
+    else if (s.missing.length <= 2) { tag = `Almost — need ${s.missing.length}`; cls = 'close'; }
+    else { tag = `${s.haveCount}/${s.total} on hand`; cls = ''; }
+
+    let ingText;
+    if (s.ready) ingText = `<span class="allset">You have everything ✨</span>`;
+    else ingText = `Just need <span class="miss">${s.missing.map(id => ITEM_BY_ID[id].name).join(', ')}</span>`;
+
+    card.innerHTML = `
+      <div class="photo">
+        <div class="fallback">${m.emoji}</div>
+        <img alt="${m.name}" loading="lazy" src="${mealImg(m,400,250)}"
+             onload="this.style.opacity=1" style="opacity:0;transition:.3s"
+             onerror="this.remove()" />
+        <span class="ready-tag ${cls}">${tag}</span>
+        <span class="type-tag">${m.type}</span>
+      </div>
+      <div class="body">
+        <h3>${m.name}</h3>
+        <div class="meta"><span>⏱ ${m.time} min</span><span>🍽 ${m.servings} servings</span></div>
+        <div class="nutri">${badges(m)}</div>
+        ${m.baby && m.baby.ok ? '<span class="baby-flag">👶 Baby-friendly (12 mo+)</span>' : ''}
+        <div class="ingline">${ingText}</div>
+      </div>`;
+    card.onclick = () => openModal(m, mealStatus(m));
+    return card;
+  }
+
+  /* =========================================================
+     MODAL
+     ========================================================= */
+  function openModal(m, s) {
+    const el = document.getElementById('modal');
+    const ingItems = m.ing.map(id => {
+      const it = ITEM_BY_ID[id];
+      const got = hasItem(id);
+      const staple = it.staple && !have.has(id) && assumeStaples;
+      return `<li class="${got?'have':'need'}">
+        <span class="dot"></span>${it.emoji} ${it.name}
+        ${got ? (staple ? '<span class="tag-staple">staple</span>' : '') : '<span class="tag-need">need</span>'}
+      </li>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="hero">
+        <div class="fallback">${m.emoji}</div>
+        <img alt="${m.name}" src="${mealImg(m,560,315)}" onerror="this.remove()" />
+        <button class="close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="inner">
+        <h2>${m.name}</h2>
+        <div class="sub">${m.type} · ⏱ ${m.time} min · 🍽 ${m.servings} servings${m.veg?' · 🌱 vegetarian':''}</div>
+
+        <div class="nutri-grid">
+          <div class="n"><b>${m.nutri.kcal}</b><span>calories</span></div>
+          <div class="n"><b>${m.nutri.protein}g</b><span>protein</span></div>
+          <div class="n"><b>${m.nutri.sodium}</b><span>mg sodium</span></div>
+          <div class="n"><b>${m.nutri.fiber}g</b><span>fiber</span></div>
+        </div>
+
+        <section>
+          <h4>Ingredients ${s.ready ? '· you have it all ✨' : '· need '+s.missing.length}</h4>
+          <ul class="ing-list">${ingItems}</ul>
+        </section>
+
+        <section>
+          <h4>How to make it</h4>
+          <ol class="steps">${m.steps.map(st=>`<li>${st}</li>`).join('')}</ol>
+        </section>
+
+        ${m.baby && m.baby.ok ? `
+        <section>
+          <div class="baby-box">
+            <h4>👶 For your 1-year-old</h4>
+            <p>${m.baby.note}</p>
+          </div>
+        </section>` : ''}
+      </div>`;
+    document.getElementById('modal-bg').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal() {
+    document.getElementById('modal-bg').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  window.closeModal = closeModal;
+  document.getElementById('modal-bg').addEventListener('click', e => {
+    if (e.target.id === 'modal-bg') closeModal();
+  });
+
+  /* =========================================================
+     NAV + counts
+     ========================================================= */
+  function switchView(v) {
+    currentView = v;
+    document.getElementById('view-pantry').classList.toggle('active', v==='pantry');
+    document.getElementById('view-meals').classList.toggle('active', v==='meals');
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.view===v));
+    if (v==='meals') renderMeals();
+  }
+  function updateCounts() {
+    const readyN = MEALS.filter(m => mealStatus(m).ready).length;
+    const badge = document.getElementById('nav-meal-badge');
+    badge.textContent = readyN;
+    badge.style.display = readyN ? 'inline-block' : 'none';
+    document.getElementById('pantry-count').textContent = `${have.size} on hand`;
+    if (currentView === 'meals') renderMeals();
+  }
+
+  /* =========================================================
+     WIRE UP
+     ========================================================= */
+  document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => switchView(b.dataset.view));
+  document.getElementById('item-search').addEventListener('input', e => { itemFilter = e.target.value; renderPantry(); });
+  document.getElementById('clear-pantry').onclick = () => {
+    if (confirm('Uncheck every item in your pantry?')) { have.clear(); save(); renderPantry(); updateCounts(); }
+  };
+  const stToggle = document.getElementById('staples-toggle');
+  stToggle.checked = assumeStaples;
+  stToggle.onchange = () => { assumeStaples = stToggle.checked; save(); updateCounts(); };
+
+  renderGoals();
+  renderPantry();
+  renderMeals();
+  updateCounts();
+  </script>
 </body>
 </html>
