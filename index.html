@@ -214,6 +214,45 @@
     nav.tabs button.on { color: var(--accent); }
     nav.tabs button.on .ic { transform: translateY(-1px); }
     nav.tabs button .nav-badge { font-size: .62rem; background: var(--accent); color: #fff; border-radius: 999px; padding: 0 6px; font-weight: 800; }
+    /* custom photo layered over a gradient tile */
+    .thumb .ph, .meal .photo .ph, .modal .hero .ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+    /* edit pencil on item cards */
+    .item .edit-badge { position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.9); border: 1.5px solid var(--line); font-size: .72rem; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; color: #6b6357; z-index: 3; }
+    .item .edit-badge:hover { background: #fff; border-color: var(--accent); color: var(--accent); }
+
+    /* editor forms */
+    .modal .editor { padding: 20px 20px 34px; }
+    .modal .editor h2 { margin: 0 0 16px; font-size: 1.4rem; }
+    .form-field { margin-bottom: 14px; }
+    .form-field > label { display: block; font-weight: 800; font-size: .82rem; color: var(--ink); margin-bottom: 5px; }
+    .form-field input[type=text], .form-field input[type=number], .form-field select, .form-field textarea {
+      width: 100%; font: inherit; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
+    .form-field input:focus, .form-field select:focus, .form-field textarea:focus { outline: none; border-color: var(--accent); }
+    .form-field textarea { min-height: 92px; resize: vertical; line-height: 1.5; }
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-field { flex: 1; }
+    .form-row .form-field > label.hint { font-weight: 700; }
+    .hint { font-size: .74rem; color: var(--muted); margin-top: 4px; font-weight: 600; }
+    .check-line { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: .92rem; cursor: pointer; }
+    .check-line input { width: 18px; height: 18px; }
+    .uploader { display: flex; gap: 12px; align-items: center; }
+    .uploader .preview { width: 74px; height: 74px; border-radius: 12px; flex: 0 0 auto; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 2rem; border: 1.5px solid var(--line); background: #f3ede3; }
+    .uploader .preview img { width: 100%; height: 100%; object-fit: cover; }
+    .uploader .up-actions { display: flex; flex-direction: column; gap: 6px; }
+    .file-btn { cursor: pointer; margin: 0; }
+    .ing-picker { max-height: 240px; overflow-y: auto; border: 1.5px solid var(--line); border-radius: 12px; padding: 6px; background: var(--card); }
+    .ing-picker .grp { font-weight: 800; font-size: .7rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 8px 6px 3px; }
+    .ing-pick { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; font-size: .88rem; }
+    .ing-pick:hover { background: var(--accent-soft); }
+    .ing-pick input { width: 17px; height: 17px; flex: 0 0 auto; }
+    .btn-row { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+    .btn-primary { background: var(--accent); color: #fff; border: none; border-radius: 12px; padding: 12px 16px; font-weight: 800; font-family: inherit; cursor: pointer; flex: 1; font-size: .92rem; }
+    .btn-primary:hover { filter: brightness(1.05); }
+    .btn-cancel { background: var(--card); color: var(--ink); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 16px; font-weight: 800; font-family: inherit; cursor: pointer; }
+    .btn-delete { background: #fbe9e9; color: #c0392b; border: 1.5px solid #f0cccc; border-radius: 12px; padding: 12px 14px; font-weight: 800; font-family: inherit; cursor: pointer; }
+    .meal-edit-actions { display: flex; gap: 10px; margin-top: 22px; border-top: 1px solid var(--line); padding-top: 18px; }
+    .meal-edit-actions button { flex: 1; }
   </style>
 </head>
 <body>
@@ -238,6 +277,7 @@
         <label class="search">
           🔍 <input id="item-search" placeholder="Search groceries…" autocomplete="off" />
         </label>
+        <button class="btn" id="add-item">➕ Add item</button>
         <button class="btn ghost" id="clear-pantry">Clear all</button>
       </div>
       <div class="staple-row">
@@ -245,6 +285,9 @@
         Assume basic staples on hand (salt, pepper, oil, water)
       </div>
       <div id="aisles"></div>
+      <div style="text-align:center;margin-top:28px">
+        <button class="btn ghost" id="restore-defaults" style="font-size:.74rem">↩︎ Restore default catalog</button>
+      </div>
     </section>
 
     <!-- MEALS VIEW -->
@@ -252,6 +295,9 @@
       <div class="view-head">
         <h2>Meal Ideas</h2>
         <span class="count-pill" id="meals-count">0 meals</span>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="add-meal">➕ Add your own meal</button>
       </div>
       <div id="meals-list"></div>
     </section>
@@ -282,7 +328,7 @@
     { id: 'spice',    name: 'Spices & Basics', emoji: '🧂' },
   ];
 
-  const ITEMS = [
+  const DEFAULT_ITEMS = [
     // produce
     { id:'banana', name:'Banana', aisle:'produce', emoji:'🍌', kw:'banana' },
     { id:'apple', name:'Apple', aisle:'produce', emoji:'🍎', kw:'apple' },
@@ -356,7 +402,6 @@
     { id:'basil', name:'Basil', aisle:'spice', emoji:'🌿', kw:'basil', staple:true },
     { id:'gingerroot', name:'Ginger', aisle:'spice', emoji:'🫚', kw:'ginger', staple:true },
   ];
-  const ITEM_BY_ID = Object.fromEntries(ITEMS.map(i => [i.id, i]));
 
   /* =========================================================
      DATA — meals
@@ -364,7 +409,7 @@
      nutrition is per serving
      baby: { ok, note }  — note covers safe prep / portioning
      ========================================================= */
-  const MEALS = [
+  const DEFAULT_MEALS = [
     {
       id:'oatmeal', name:'Banana Oatmeal', type:'breakfast', time:10, servings:2, emoji:'🥣', kw:'oatmeal-banana',
       ing:['oats','banana','milk','cinnamon'],
@@ -564,11 +609,57 @@
      ========================================================= */
   const LS_HAVE = 'p2p_have_v1';
   const LS_STAPLES = 'p2p_staples_v1';
+  const LS_CATALOG = 'p2p_catalog_v1';
   let have = new Set(JSON.parse(localStorage.getItem(LS_HAVE) || '[]'));
   let assumeStaples = JSON.parse(localStorage.getItem(LS_STAPLES) ?? 'true');
   let activeGoals = new Set();
   let itemFilter = '';
   let currentView = 'pantry';
+
+  // Editable catalog: built-in defaults are the seed; the user's added/edited
+  // items & meals live in localStorage and take over once present.
+  let items = [], meals = [], ITEM_BY_ID = {}, pendingImg = null;
+  const clone = x => JSON.parse(JSON.stringify(x));
+  function reindex() { ITEM_BY_ID = Object.fromEntries(items.map(i => [i.id, i])); }
+  function loadCatalog() {
+    const raw = localStorage.getItem(LS_CATALOG);
+    if (raw) {
+      try { const c = JSON.parse(raw); items = c.items || []; meals = c.meals || []; }
+      catch (e) { items = clone(DEFAULT_ITEMS); meals = clone(DEFAULT_MEALS); }
+    } else { items = clone(DEFAULT_ITEMS); meals = clone(DEFAULT_MEALS); }
+    reindex();
+  }
+  function saveCatalog() { reindex(); localStorage.setItem(LS_CATALOG, JSON.stringify({ items, meals })); }
+  function persist() {
+    try { saveCatalog(); return true; }
+    catch (e) { alert('Couldn’t save — you may have added too many large photos. Try smaller images, or paste an image URL instead.'); return false; }
+  }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+  function uid(name) {
+    const base = (name || 'item').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 16) || 'item';
+    let id = base, n = 1;
+    while (ITEM_BY_ID[id] || meals.some(m => m.id === id)) id = base + (++n);
+    return id;
+  }
+  // shrink an uploaded image to keep localStorage small, then hand back a data URL
+  function fileToResizedDataURL(file, max, cb) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width >= height && width > max) { height = Math.round(height * max / width); width = max; }
+        else if (height > width && height > max) { width = Math.round(width * max / height); height = max; }
+        const c = document.createElement('canvas'); c.width = width; c.height = height;
+        c.getContext('2d').drawImage(img, 0, 0, width, height);
+        try { cb(c.toDataURL('image/jpeg', 0.82)); } catch (err) { cb(null); }
+      };
+      img.onerror = () => cb(null);
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+  loadCatalog();
 
   const GOALS = [
     { id:'highprotein', label:'💪 High protein', test:m => m.nutri.protein >= 25 },
@@ -596,9 +687,10 @@
   }
 
   function mealStatus(m) {
-    const total = m.ing.length;
-    const haveCount = m.ing.filter(hasItem).length;
-    const missing = m.ing.filter(id => !hasItem(id));
+    const ing = (m.ing || []).filter(id => ITEM_BY_ID[id]); // ignore any deleted items
+    const total = ing.length;
+    const haveCount = ing.filter(hasItem).length;
+    const missing = ing.filter(id => !hasItem(id));
     return { total, haveCount, missing, ratio: total ? haveCount/total : 0, ready: missing.length === 0 };
   }
 
@@ -629,15 +721,15 @@
     const q = itemFilter.trim().toLowerCase();
 
     AISLES.forEach(aisle => {
-      const items = ITEMS.filter(i => i.aisle === aisle.id && (!q || i.name.toLowerCase().includes(q)));
-      if (!items.length) return;
+      const list = items.filter(i => i.aisle === aisle.id && (!q || i.name.toLowerCase().includes(q)));
+      if (!list.length) return;
       const sec = document.createElement('div');
       sec.className = 'aisle';
-      const haveN = items.filter(i => have.has(i.id)).length;
-      sec.innerHTML = `<h3><span class="emoji">${aisle.emoji}</span> ${aisle.name} <small>${haveN}/${items.length}</small></h3>`;
+      const haveN = list.filter(i => have.has(i.id)).length;
+      sec.innerHTML = `<h3><span class="emoji">${aisle.emoji}</span> ${aisle.name} <small>${haveN}/${list.length}</small></h3>`;
       const grid = document.createElement('div');
       grid.className = 'grid';
-      items.forEach(i => grid.appendChild(itemCard(i)));
+      list.forEach(i => grid.appendChild(itemCard(i)));
       sec.appendChild(grid);
       wrap.appendChild(sec);
     });
@@ -651,12 +743,16 @@
   function itemCard(i) {
     const card = document.createElement('div');
     card.className = 'item' + (have.has(i.id) ? ' have' : '');
+    const ph = i.img ? `<img class="ph" src="${esc(i.img)}" alt="" onerror="this.style.display='none'">` : '';
     card.innerHTML = `
       <div class="thumb ${aisleClass(i.aisle)}">
-        <span class="fallback">${i.emoji}</span>
+        <span class="fallback">${i.emoji || '🛒'}</span>
+        ${ph}
+        <button class="edit-badge" title="Edit item">✎</button>
         <div class="tick">✓</div>
       </div>
-      <div class="name">${i.name}</div>`;
+      <div class="name">${esc(i.name)}</div>`;
+    card.querySelector('.edit-badge').onclick = (e) => { e.stopPropagation(); openItemEditor(i.id); };
     card.onclick = () => {
       have.has(i.id) ? have.delete(i.id) : have.add(i.id);
       save();
@@ -670,33 +766,29 @@
      RENDER — meals
      ========================================================= */
   function renderMeals() {
-    const list = document.getElementById('meals-list');
-    list.innerHTML = '';
+    document.getElementById('meals-list').innerHTML = '';
 
-    let meals = MEALS.slice();
+    let list = meals.slice();
     // apply goal filters
-    GOALS.forEach(g => { if (activeGoals.has(g.id)) meals = meals.filter(g.test); });
+    GOALS.forEach(g => { if (activeGoals.has(g.id)) list = list.filter(g.test); });
 
     // attach status, sort by readiness then ratio then fewer missing
-    meals = meals.map(m => ({ m, s: mealStatus(m) }))
-                 .sort((a,b) => (b.s.ratio - a.s.ratio) || (a.s.missing.length - b.s.missing.length) || (a.m.time - b.m.time));
+    list = list.map(m => ({ m, s: mealStatus(m) }))
+               .sort((a,b) => (b.s.ratio - a.s.ratio) || (a.s.missing.length - b.s.missing.length) || (a.m.time - b.m.time));
 
-    const readyN = meals.filter(x => x.s.ready).length;
+    const readyN = list.filter(x => x.s.ready).length;
     document.getElementById('meals-count').textContent =
-      `${meals.length} meal${meals.length!==1?'s':''}${readyN ? ' · ' + readyN + ' ready' : ''}`;
+      `${list.length} meal${list.length!==1?'s':''}${readyN ? ' · ' + readyN + ' ready' : ''}`;
 
-    if (!meals.length) {
-      list.innerHTML = `<div class="empty"><div class="big">🍽️</div><h3>No meals match those goals</h3><p>Try turning off a filter or checking more pantry items.</p></div>`;
+    const wrap = document.getElementById('meals-list');
+    if (!list.length) {
+      wrap.innerHTML = `<div class="empty"><div class="big">🍽️</div><h3>No meals match those goals</h3><p>Try turning off a filter, checking more pantry items, or adding your own meal above.</p></div>`;
       return;
     }
-    if (have.size === 0 && assumeStaples === false) {
-      // still render, just a gentle nudge handled by ingline
-    }
-
     const grid = document.createElement('div');
     grid.className = 'meals';
-    meals.forEach(({m,s}) => grid.appendChild(mealCard(m,s)));
-    list.appendChild(grid);
+    list.forEach(({m,s}) => grid.appendChild(mealCard(m,s)));
+    wrap.appendChild(grid);
   }
 
   function badges(m) {
@@ -717,17 +809,20 @@
     else { tag = `${s.haveCount}/${s.total} on hand`; cls = ''; }
 
     let ingText;
-    if (s.ready) ingText = `<span class="allset">You have everything ✨</span>`;
-    else ingText = `Just need <span class="miss">${s.missing.map(id => ITEM_BY_ID[id].name).join(', ')}</span>`;
+    if (s.total === 0) ingText = `<span class="miss">No ingredients set — tap to edit</span>`;
+    else if (s.ready) ingText = `<span class="allset">You have everything ✨</span>`;
+    else ingText = `Just need <span class="miss">${s.missing.map(id => esc(ITEM_BY_ID[id].name)).join(', ')}</span>`;
 
+    const ph = m.img ? `<img class="ph" src="${esc(m.img)}" alt="" onerror="this.style.display='none'">` : '';
     card.innerHTML = `
       <div class="photo ${typeClass(m.type)}">
-        <div class="fallback">${m.emoji}</div>
+        <div class="fallback">${m.emoji || '🍽️'}</div>
+        ${ph}
         <span class="ready-tag ${cls}">${tag}</span>
-        <span class="type-tag">${m.type}</span>
+        <span class="type-tag">${esc(m.type)}</span>
       </div>
       <div class="body">
-        <h3>${m.name}</h3>
+        <h3>${esc(m.name)}</h3>
         <div class="meta"><span>⏱ ${m.time} min</span><span>🍽 ${m.servings} servings</span></div>
         <div class="nutri">${badges(m)}</div>
         ${m.baby && m.baby.ok ? '<span class="baby-flag">👶 Baby-friendly (12 mo+)</span>' : ''}
@@ -742,24 +837,26 @@
      ========================================================= */
   function openModal(m, s) {
     const el = document.getElementById('modal');
-    const ingItems = m.ing.map(id => {
+    const ingItems = (m.ing || []).filter(id => ITEM_BY_ID[id]).map(id => {
       const it = ITEM_BY_ID[id];
       const got = hasItem(id);
       const staple = it.staple && !have.has(id) && assumeStaples;
       return `<li class="${got?'have':'need'}">
-        <span class="dot"></span>${it.emoji} ${it.name}
+        <span class="dot"></span>${it.emoji || ''} ${esc(it.name)}
         ${got ? (staple ? '<span class="tag-staple">staple</span>' : '') : '<span class="tag-need">need</span>'}
       </li>`;
-    }).join('');
+    }).join('') || '<li class="need"><span class="dot"></span>No ingredients set yet</li>';
+    const ph = m.img ? `<img class="ph" src="${esc(m.img)}" alt="">` : '';
 
     el.innerHTML = `
       <div class="hero ${typeClass(m.type)}">
-        <div class="fallback">${m.emoji}</div>
+        <div class="fallback">${m.emoji || '🍽️'}</div>
+        ${ph}
         <button class="close" onclick="closeModal()">✕</button>
       </div>
       <div class="inner">
-        <h2>${m.name}</h2>
-        <div class="sub">${m.type} · ⏱ ${m.time} min · 🍽 ${m.servings} servings${m.veg?' · 🌱 vegetarian':''}</div>
+        <h2>${esc(m.name)}</h2>
+        <div class="sub">${esc(m.type)} · ⏱ ${m.time} min · 🍽 ${m.servings} servings${m.veg?' · 🌱 vegetarian':''}</div>
 
         <div class="nutri-grid">
           <div class="n"><b>${m.nutri.kcal}</b><span>calories</span></div>
@@ -769,23 +866,38 @@
         </div>
 
         <section>
-          <h4>Ingredients ${s.ready ? '· you have it all ✨' : '· need '+s.missing.length}</h4>
+          <h4>Ingredients ${s.total===0 ? '' : (s.ready ? '· you have it all ✨' : '· need '+s.missing.length)}</h4>
           <ul class="ing-list">${ingItems}</ul>
         </section>
 
+        ${(m.steps && m.steps.length) ? `
         <section>
           <h4>How to make it</h4>
-          <ol class="steps">${m.steps.map(st=>`<li>${st}</li>`).join('')}</ol>
-        </section>
+          <ol class="steps">${m.steps.map(st=>`<li>${esc(st)}</li>`).join('')}</ol>
+        </section>` : ''}
 
-        ${m.baby && m.baby.ok ? `
+        ${m.baby && m.baby.ok && m.baby.note ? `
         <section>
           <div class="baby-box">
             <h4>👶 For your 1-year-old</h4>
-            <p>${m.baby.note}</p>
+            <p>${esc(m.baby.note)}</p>
           </div>
         </section>` : ''}
+
+        <div class="meal-edit-actions">
+          <button class="btn-cancel" id="detail-edit">✎ Edit this meal</button>
+          <button class="btn-delete" id="detail-delete">Delete</button>
+        </div>
       </div>`;
+    el.querySelector('#detail-edit').onclick = () => openMealEditor(m.id);
+    el.querySelector('#detail-delete').onclick = () => {
+      if (!confirm(`Delete "${m.name}"?`)) return;
+      meals = meals.filter(x => x.id !== m.id);
+      if (persist()) { renderMeals(); updateCounts(); closeModal(); }
+    };
+    openModalShell();
+  }
+  function openModalShell() {
     document.getElementById('modal-bg').classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -809,12 +921,201 @@
     if (v==='meals') renderMeals();
   }
   function updateCounts() {
-    const readyN = MEALS.filter(m => mealStatus(m).ready).length;
+    const readyN = meals.filter(m => mealStatus(m).ready).length;
     const badge = document.getElementById('nav-meal-badge');
     badge.textContent = readyN;
     badge.style.display = readyN ? 'inline-block' : 'none';
     document.getElementById('pantry-count').textContent = `${have.size} on hand`;
     if (currentView === 'meals') renderMeals();
+  }
+
+  /* =========================================================
+     EDITORS — add / edit / delete items & meals
+     ========================================================= */
+  function wireUploader(el, prefix, getEmoji) {
+    const file = el.querySelector('#' + prefix + '-file');
+    const preview = el.querySelector('#' + prefix + '-preview');
+    file.onchange = () => {
+      const f = file.files[0]; if (!f) return;
+      fileToResizedDataURL(f, prefix === 'm' ? 640 : 480, url => {
+        if (url) { pendingImg = url; preview.innerHTML = `<img src="${url}">`; }
+        else alert('Sorry, that image could not be read.');
+      });
+    };
+    el.querySelector('#' + prefix + '-imgurl').oninput = e => {
+      const v = e.target.value.trim();
+      if (v) { pendingImg = v; preview.innerHTML = `<img src="${esc(v)}" onerror="this.remove()">`; }
+    };
+    el.querySelector('#' + prefix + '-clearimg').onclick = () => {
+      pendingImg = null;
+      el.querySelector('#' + prefix + '-imgurl').value = '';
+      preview.textContent = getEmoji() || (prefix === 'm' ? '🍽️' : '🛒');
+    };
+  }
+
+  function openItemEditor(id) {
+    const editing = id != null;
+    const it = editing ? ITEM_BY_ID[id] : { name:'', aisle:'produce', emoji:'🥕', img:null, staple:false };
+    pendingImg = it.img || null;
+    const aisleOpts = AISLES.map(a => `<option value="${a.id}" ${a.id===it.aisle?'selected':''}>${a.emoji} ${a.name}</option>`).join('');
+    const el = document.getElementById('modal');
+    el.innerHTML = `
+      <div class="editor">
+        <h2>${editing ? 'Edit item' : 'Add grocery item'}</h2>
+        <div class="form-field"><label>Name</label><input type="text" id="i-name" value="${esc(it.name)}" placeholder="e.g. Greek Yogurt"></div>
+        <div class="form-row">
+          <div class="form-field"><label>Aisle</label><select id="i-aisle">${aisleOpts}</select></div>
+          <div class="form-field" style="flex:0 0 86px"><label>Emoji</label><input type="text" id="i-emoji" value="${esc(it.emoji||'')}" maxlength="4"></div>
+        </div>
+        <div class="form-field">
+          <label>Photo (optional)</label>
+          <div class="uploader">
+            <div class="preview" id="i-preview">${pendingImg ? `<img src="${esc(pendingImg)}">` : (it.emoji||'🛒')}</div>
+            <div class="up-actions">
+              <label class="btn file-btn">📷 Upload photo<input type="file" accept="image/*" id="i-file" style="display:none"></label>
+              <button class="btn ghost" id="i-clearimg" type="button">Use emoji instead</button>
+            </div>
+          </div>
+          <input type="text" id="i-imgurl" placeholder="…or paste an image URL" style="margin-top:8px">
+          <div class="hint">Uploaded photos are shrunk and saved on this device.</div>
+        </div>
+        <div class="form-field"><label class="check-line"><input type="checkbox" id="i-staple" ${it.staple?'checked':''}> Assume always on hand (staple — won’t block meal matches)</label></div>
+        <div class="btn-row">
+          <button class="btn-primary" id="i-save">${editing ? 'Save changes' : 'Add item'}</button>
+          ${editing ? '<button class="btn-delete" id="i-delete">Delete</button>' : ''}
+          <button class="btn-cancel" id="i-cancel">Cancel</button>
+        </div>
+      </div>`;
+    openModalShell();
+    wireUploader(el, 'i', () => el.querySelector('#i-emoji').value);
+    el.querySelector('#i-cancel').onclick = closeModal;
+    el.querySelector('#i-save').onclick = () => {
+      const name = el.querySelector('#i-name').value.trim();
+      if (!name) { el.querySelector('#i-name').focus(); return; }
+      const obj = {
+        id: editing ? id : uid(name),
+        name,
+        aisle: el.querySelector('#i-aisle').value,
+        emoji: el.querySelector('#i-emoji').value.trim() || '🛒',
+        staple: el.querySelector('#i-staple').checked,
+      };
+      if (pendingImg) obj.img = pendingImg;
+      if (editing) { items[items.findIndex(x => x.id === id)] = obj; }
+      else items.push(obj);
+      if (!persist()) return;
+      renderPantry(); updateCounts(); closeModal();
+    };
+    if (editing) el.querySelector('#i-delete').onclick = () => {
+      if (!confirm(`Delete "${it.name}"? It will also be removed from any meals that use it.`)) return;
+      items = items.filter(x => x.id !== id);
+      meals.forEach(m => { if (m.ing) m.ing = m.ing.filter(x => x !== id); });
+      have.delete(id); save();
+      if (persist()) { renderPantry(); renderMeals(); updateCounts(); closeModal(); }
+    };
+  }
+
+  function openMealEditor(id) {
+    const editing = id != null;
+    const m = editing ? meals.find(x => x.id === id)
+                      : { name:'', type:'dinner', time:20, servings:2, emoji:'🍽️', img:null, ing:[], nutri:{kcal:0,protein:0,sodium:0,fiber:0}, veg:false, baby:{ok:false,note:''}, steps:[] };
+    pendingImg = m.img || null;
+    const typeOpts = ['breakfast','lunch','dinner','snack'].map(t => `<option ${t===m.type?'selected':''}>${t}</option>`).join('');
+    const chosen = new Set(m.ing || []);
+    const picker = AISLES.map(a => {
+      const its = items.filter(i => i.aisle === a.id);
+      if (!its.length) return '';
+      return `<div class="grp">${a.emoji} ${a.name}</div>` +
+        its.map(i => `<label class="ing-pick"><input type="checkbox" value="${i.id}" ${chosen.has(i.id)?'checked':''}> ${i.emoji||''} ${esc(i.name)}</label>`).join('');
+    }).join('');
+    const el = document.getElementById('modal');
+    el.innerHTML = `
+      <div class="editor">
+        <h2>${editing ? 'Edit meal' : 'Add a meal'}</h2>
+        <div class="form-field"><label>Meal name</label><input type="text" id="m-name" value="${esc(m.name)}" placeholder="e.g. Veggie Pasta Bake"></div>
+        <div class="form-row">
+          <div class="form-field"><label>Type</label><select id="m-type">${typeOpts}</select></div>
+          <div class="form-field" style="flex:0 0 84px"><label>Emoji</label><input type="text" id="m-emoji" value="${esc(m.emoji||'')}" maxlength="4"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-field"><label>Time (min)</label><input type="number" id="m-time" value="${m.time||0}" min="0"></div>
+          <div class="form-field"><label>Servings</label><input type="number" id="m-serv" value="${m.servings||1}" min="1"></div>
+        </div>
+        <div class="form-field">
+          <label>Photo (optional)</label>
+          <div class="uploader">
+            <div class="preview" id="m-preview">${pendingImg ? `<img src="${esc(pendingImg)}">` : (m.emoji||'🍽️')}</div>
+            <div class="up-actions">
+              <label class="btn file-btn">📷 Upload photo<input type="file" accept="image/*" id="m-file" style="display:none"></label>
+              <button class="btn ghost" id="m-clearimg" type="button">Use emoji instead</button>
+            </div>
+          </div>
+          <input type="text" id="m-imgurl" placeholder="…or paste an image URL" style="margin-top:8px">
+        </div>
+        <div class="form-field">
+          <label>Ingredients (from your pantry)</label>
+          <div class="ing-picker" id="m-ings">${picker}</div>
+          <div class="hint">Tick what this meal needs. If something’s missing, add it on the Pantry tab first.</div>
+        </div>
+        <div class="form-field"><label>Nutrition (per serving)</label>
+          <div class="form-row">
+            <div class="form-field"><label class="hint">Calories</label><input type="number" id="m-kcal" value="${m.nutri.kcal||0}" min="0"></div>
+            <div class="form-field"><label class="hint">Protein (g)</label><input type="number" id="m-prot" value="${m.nutri.protein||0}" min="0"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-field"><label class="hint">Sodium (mg)</label><input type="number" id="m-sod" value="${m.nutri.sodium||0}" min="0"></div>
+            <div class="form-field"><label class="hint">Fiber (g)</label><input type="number" id="m-fib" value="${m.nutri.fiber||0}" min="0"></div>
+          </div>
+        </div>
+        <div class="form-field"><label class="check-line"><input type="checkbox" id="m-veg" ${m.veg?'checked':''}> 🌱 Vegetarian</label></div>
+        <div class="form-field"><label class="check-line"><input type="checkbox" id="m-baby" ${m.baby&&m.baby.ok?'checked':''}> 👶 Baby-friendly (12 mo+)</label></div>
+        <div class="form-field" id="m-babywrap" style="${m.baby&&m.baby.ok?'':'display:none'}">
+          <label>Note for baby (safe prep / portioning)</label>
+          <textarea id="m-babynote" placeholder="e.g. Mash soft, cut into finger strips, skip added salt…">${esc(m.baby?m.baby.note:'')}</textarea>
+        </div>
+        <div class="form-field"><label>Steps (one per line)</label><textarea id="m-steps" placeholder="Boil the pasta\nMake the sauce\nCombine and bake">${esc((m.steps||[]).join('\n'))}</textarea></div>
+        <div class="btn-row">
+          <button class="btn-primary" id="m-save">${editing ? 'Save changes' : 'Add meal'}</button>
+          ${editing ? '<button class="btn-delete" id="m-delete">Delete</button>' : ''}
+          <button class="btn-cancel" id="m-cancel">Cancel</button>
+        </div>
+      </div>`;
+    openModalShell();
+    wireUploader(el, 'm', () => el.querySelector('#m-emoji').value);
+    el.querySelector('#m-baby').onchange = e => { el.querySelector('#m-babywrap').style.display = e.target.checked ? '' : 'none'; };
+    el.querySelector('#m-cancel').onclick = closeModal;
+    el.querySelector('#m-save').onclick = () => {
+      const name = el.querySelector('#m-name').value.trim();
+      if (!name) { el.querySelector('#m-name').focus(); return; }
+      const babyOn = el.querySelector('#m-baby').checked;
+      const obj = {
+        id: editing ? id : uid(name),
+        name,
+        type: el.querySelector('#m-type').value,
+        time: +el.querySelector('#m-time').value || 0,
+        servings: +el.querySelector('#m-serv').value || 1,
+        emoji: el.querySelector('#m-emoji').value.trim() || '🍽️',
+        ing: [...el.querySelectorAll('#m-ings input:checked')].map(c => c.value),
+        nutri: {
+          kcal: +el.querySelector('#m-kcal').value || 0,
+          protein: +el.querySelector('#m-prot').value || 0,
+          sodium: +el.querySelector('#m-sod').value || 0,
+          fiber: +el.querySelector('#m-fib').value || 0,
+        },
+        veg: el.querySelector('#m-veg').checked,
+        baby: { ok: babyOn, note: babyOn ? el.querySelector('#m-babynote').value.trim() : '' },
+        steps: el.querySelector('#m-steps').value.split('\n').map(s => s.trim()).filter(Boolean),
+      };
+      if (pendingImg) obj.img = pendingImg;
+      if (editing) { meals[meals.findIndex(x => x.id === id)] = obj; }
+      else meals.push(obj);
+      if (!persist()) return;
+      renderMeals(); updateCounts(); closeModal();
+    };
+    if (editing) el.querySelector('#m-delete').onclick = () => {
+      if (!confirm(`Delete "${m.name}"?`)) return;
+      meals = meals.filter(x => x.id !== id);
+      if (persist()) { renderMeals(); updateCounts(); closeModal(); }
+    };
   }
 
   /* =========================================================
@@ -828,6 +1129,14 @@
   const stToggle = document.getElementById('staples-toggle');
   stToggle.checked = assumeStaples;
   stToggle.onchange = () => { assumeStaples = stToggle.checked; save(); updateCounts(); };
+
+  document.getElementById('add-item').onclick = () => openItemEditor(null);
+  document.getElementById('add-meal').onclick = () => openMealEditor(null);
+  document.getElementById('restore-defaults').onclick = () => {
+    if (!confirm('Restore the original built-in items and meals?\n\nThis discards items and meals you’ve added or edited. Your pantry checkmarks are kept.')) return;
+    items = clone(DEFAULT_ITEMS); meals = clone(DEFAULT_MEALS);
+    if (persist()) { renderPantry(); renderMeals(); updateCounts(); }
+  };
 
   renderGoals();
   renderPantry();
