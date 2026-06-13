@@ -314,6 +314,23 @@
     nav.tabs button { max-width: 120px; font-size: .72rem; padding: 6px 2px; }
     nav.tabs button .ic { font-size: 1.25rem; }
 
+    /* recipe import */
+    .imp-loading, .imp-ok, .imp-err { font-weight: 700; font-size: .85rem; padding: 10px 0 2px; }
+    .imp-ok { color: var(--accent); }
+    .imp-err { color: #c0392b; }
+    .imp-loading { color: var(--muted); }
+    .imp-summary { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 12px 0 14px; }
+    .imp-summary b { font-size: 1.05rem; }
+    .imp-ings { max-height: 240px; overflow-y: auto; border: 1.5px solid var(--line); border-radius: 12px; padding: 8px; background: var(--card); display: grid; gap: 8px; }
+    .imp-ing { font-size: .85rem; }
+    .imp-ing.matched { display: flex; align-items: center; gap: 8px; }
+    .imp-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: 0 0 auto; }
+    .imp-ing .imp-line { flex: 1; }
+    .imp-tag { font-weight: 800; color: var(--accent); font-size: .76rem; white-space: nowrap; }
+    .imp-ing.new { display: grid; gap: 6px; padding: 7px; border: 1px dashed #e0d6c6; border-radius: 8px; }
+    .imp-line2 { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
+    .imp-newname { width: 100%; padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 8px; font: inherit; }
+
     /* home / landing */
     .home-greet h1 { margin: 0; font-size: 1.6rem; }
     .home-greet p { margin: 2px 0 18px; color: var(--muted); font-weight: 700; }
@@ -397,7 +414,10 @@
         <h2>Dishes</h2>
         <span class="count-pill" id="dishes-count">0 dishes</span>
       </div>
-      <div class="toolbar"><button class="btn" id="add-dish">➕ Add a dish</button></div>
+      <div class="toolbar">
+        <button class="btn" id="add-dish">➕ Add a dish</button>
+        <button class="btn" id="import-dish">🔗 Import recipe</button>
+      </div>
       <div id="dishes-list"></div>
     </section>
 
@@ -1257,6 +1277,172 @@
   });
 
   /* =========================================================
+     IMPORT — pull a dish from a recipe URL (schema.org/Recipe)
+     ========================================================= */
+  function openImport() {
+    const el = document.getElementById('modal');
+    el.innerHTML = `
+      <div class="editor">
+        <h2>🔗 Import a recipe</h2>
+        <div class="form-field"><label>Recipe URL</label>
+          <input type="text" id="imp-url" placeholder="https://…" autocomplete="off">
+          <div class="hint">Paste a link from most recipe sites. We read the page’s recipe data, match the ingredients to your pantry, and pre-fill a dish for you to review. The link is fetched through a public proxy so your browser can read it.</div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary" id="imp-fetch">Fetch recipe</button>
+          <button class="btn-cancel" id="imp-cancel">Cancel</button>
+        </div>
+        <div id="imp-status"></div>
+        <div id="imp-review"></div>
+      </div>`;
+    openModalShell();
+    el.querySelector('#imp-cancel').onclick = closeModal;
+    el.querySelector('#imp-fetch').onclick = () => doImport(el);
+    el.querySelector('#imp-url').addEventListener('keydown', e => { if (e.key === 'Enter') doImport(el); });
+  }
+
+  async function doImport(el) {
+    const url = el.querySelector('#imp-url').value.trim();
+    const status = el.querySelector('#imp-status');
+    el.querySelector('#imp-review').innerHTML = '';
+    if (!/^https?:\/\//i.test(url)) { status.innerHTML = `<p class="imp-err">Please paste a full link starting with http.</p>`; return; }
+    status.innerHTML = `<p class="imp-loading">⏳ Fetching recipe…</p>`;
+    try {
+      const recipe = await fetchRecipe(url);
+      if (!recipe || !recipe.name) throw new Error('no-recipe');
+      status.innerHTML = `<p class="imp-ok">✓ Found a recipe</p>`;
+      showImportReview(el, recipe);
+    } catch (e) {
+      status.innerHTML = `<p class="imp-err">Couldn’t read a recipe from that page. Some sites block importing — try a different recipe, or add the dish manually.</p>`;
+    }
+  }
+
+  async function fetchRecipe(url) {
+    const proxies = [
+      u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+      u => `https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    ];
+    let html = null;
+    for (const make of proxies) {
+      try {
+        const res = await fetch(make(url));
+        if (res.ok) { const t = await res.text(); if (t && t.length > 200) { html = t; break; } }
+      } catch (e) { /* try next proxy */ }
+    }
+    if (!html) throw new Error('fetch-failed');
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    for (const s of doc.querySelectorAll('script[type="application/ld+json"]')) {
+      let data; try { data = JSON.parse(s.textContent); } catch (e) { continue; }
+      const node = findRecipe(data);
+      if (node) return normalizeRecipe(node);
+    }
+    return null;
+  }
+
+  function findRecipe(data) {
+    if (!data) return null;
+    if (Array.isArray(data)) { for (const x of data) { const r = findRecipe(x); if (r) return r; } return null; }
+    const t = data['@type'];
+    const isRecipe = t && (Array.isArray(t) ? t.includes('Recipe') : t === 'Recipe');
+    if (isRecipe) return data;
+    if (data['@graph']) return findRecipe(data['@graph']);
+    return null;
+  }
+
+  const pickImage = img => !img ? null : typeof img === 'string' ? img : Array.isArray(img) ? pickImage(img[0]) : (img.url || null);
+  const parseDuration = d => { if (!d || typeof d !== 'string') return 0; const m = d.match(/PT(?:(\d+)H)?(?:(\d+)M)?/); return m ? (+(m[1]||0))*60 + (+(m[2]||0)) : 0; };
+  const parseYield = y => { if (y == null) return 0; if (Array.isArray(y)) y = y[0]; const m = String(y).match(/\d+/); return m ? +m[0] : 0; };
+  const parseNum = s => { if (s == null) return 0; const m = String(s).match(/[\d.]+/); return m ? Math.round(+m[0]) : 0; };
+  function flattenInstructions(ins) {
+    if (!ins) return [];
+    if (typeof ins === 'string') return ins.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
+    if (!Array.isArray(ins)) return [];
+    const out = [];
+    ins.forEach(step => {
+      if (typeof step === 'string') out.push(step.trim());
+      else if (step.text) out.push(String(step.text).trim());
+      else if (step['@type'] === 'HowToSection' && Array.isArray(step.itemListElement))
+        step.itemListElement.forEach(s => { if (s.text) out.push(String(s.text).trim()); });
+    });
+    return out.filter(Boolean);
+  }
+  function normalizeRecipe(r) {
+    const n = r.nutrition || {};
+    return {
+      name: (r.name || '').toString().trim(),
+      img: pickImage(r.image),
+      time: parseDuration(r.totalTime) || parseDuration(r.cookTime) || 0,
+      servings: parseYield(r.recipeYield) || 1,
+      steps: flattenInstructions(r.recipeInstructions),
+      ingLines: Array.isArray(r.recipeIngredient) ? r.recipeIngredient.map(x => String(x).trim()).filter(Boolean) : [],
+      nutri: { kcal: parseNum(n.calories), protein: parseNum(n.proteinContent), sodium: parseNum(n.sodiumContent), fiber: parseNum(n.fiberContent) },
+    };
+  }
+
+  function matchIngredient(line) {
+    const l = ' ' + line.toLowerCase() + ' ';
+    let best = null;
+    ingredients.forEach(i => {
+      const n = i.name.toLowerCase();
+      const forms = [n, n.replace(/s$/, '')].filter(f => f.length > 2);
+      forms.forEach(f => {
+        if (l.includes(' ' + f) || l.includes(f + ' ') || l.includes(f)) {
+          if (!best || f.length > best._len) { best = i; best._len = f.length; }
+        }
+      });
+    });
+    return best;
+  }
+  function cleanIngredientName(line) {
+    let s = ' ' + line.toLowerCase() + ' ';
+    s = s.replace(/\([^)]*\)/g, ' ').replace(/[\d¼½¾⅓⅔⅛⅜⅝⅞.,/-]+/g, ' ');
+    s = s.replace(/\b(cups?|tbsps?|tablespoons?|tsps?|teaspoons?|oz|ounces?|lbs?|pounds?|grams?|g|kg|ml|l|cloves?|cans?|jars?|packages?|pkg|slices?|sticks?|pinch|dash|handful|to taste|chopped|minced|diced|sliced|grated|shredded|fresh|large|small|medium|ground|boneless|skinless|optional|finely|roughly)\b/g, ' ');
+    s = s.replace(/\s+/g, ' ').trim();
+    const w = s.split(' ').filter(Boolean).slice(-3).join(' ');
+    return w ? w.replace(/\b\w/g, c => c.toUpperCase()) : line.trim();
+  }
+
+  function showImportReview(el, recipe) {
+    const review = el.querySelector('#imp-review');
+    const rows = recipe.ingLines.map((line, idx) => {
+      const m = matchIngredient(line);
+      if (m) return `<div class="imp-ing matched" data-match="${m.id}"><span class="imp-dot"></span><span class="imp-line">${esc(line)}</span><span class="imp-tag">${m.emoji||''} ${esc(m.name)}</span></div>`;
+      return `<div class="imp-ing new"><label class="imp-line2"><input type="checkbox" class="imp-create" checked> <span class="imp-line">${esc(line)}</span></label><input type="text" class="imp-newname" value="${esc(cleanIngredientName(line))}"></div>`;
+    }).join('');
+    review.innerHTML = `
+      <div class="imp-summary">
+        <b>${esc(recipe.name)}</b>
+        <div class="hint">⏱ ${recipe.time||'?'} min · 🍽 ${recipe.servings||'?'} servings · ${recipe.steps.length} steps · ${recipe.nutri.kcal||'?'} cal</div>
+      </div>
+      <div class="form-field"><label>Ingredients (${recipe.ingLines.length})</label>
+        <div class="imp-ings">${rows || '<p class="hint">No ingredients found in the page data.</p>'}</div>
+        <div class="hint">Green = matched to your pantry. Unmatched ones become new ingredients (uncheck to skip, or rename).</div>
+      </div>
+      <div class="btn-row"><button class="btn-primary" id="imp-open">Review &amp; add dish →</button></div>`;
+    review.querySelector('#imp-open').onclick = () => {
+      const ingIds = [];
+      review.querySelectorAll('.imp-ing').forEach(row => {
+        if (row.classList.contains('matched')) { ingIds.push(row.dataset.match); return; }
+        const cb = row.querySelector('.imp-create');
+        if (cb && cb.checked) {
+          const nm = row.querySelector('.imp-newname').value.trim();
+          if (nm) {
+            let it = ingredients.find(i => i.name.toLowerCase() === nm.toLowerCase());
+            if (!it) { it = { id: uid(nm), name: nm, aisle: 'pantry', emoji: '🛒' }; ingredients.push(it); }
+            ingIds.push(it.id);
+          }
+        }
+      });
+      persist();
+      openDishEditor(null, {
+        name: recipe.name, time: recipe.time, servings: recipe.servings || 1,
+        img: recipe.img || null, ing: [...new Set(ingIds)], steps: recipe.steps,
+        nutri: recipe.nutri, type: 'dinner',
+      });
+    };
+  }
+
+  /* =========================================================
      RENDER — home / landing
      ========================================================= */
   function greeting() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; }
@@ -1553,10 +1739,10 @@
     };
   }
 
-  function openDishEditor(id) {
+  function openDishEditor(id, prefill) {
     const editing = id != null;
-    const d = editing ? DISH_BY_ID[id]
-                      : { name:'', type:'dinner', time:20, servings:2, emoji:'🍽️', img:null, ing:[], nutri:{kcal:0,protein:0,sodium:0,fiber:0}, veg:false, baby:{ok:false,note:''}, steps:[] };
+    const base = { name:'', type:'dinner', time:20, servings:2, emoji:'🍽️', img:null, ing:[], nutri:{kcal:0,protein:0,sodium:0,fiber:0}, veg:false, baby:{ok:false,note:''}, steps:[] };
+    const d = editing ? DISH_BY_ID[id] : Object.assign(base, prefill || {});
     pendingImg = d.img || null;
     const typeOpts = ['breakfast','lunch','dinner','side','snack'].map(t => `<option ${t===d.type?'selected':''}>${t}</option>`).join('');
     const chosen = new Set(d.ing || []);
@@ -1727,6 +1913,7 @@
 
   document.getElementById('add-item').onclick = () => openIngredientEditor(null);
   document.getElementById('add-dish').onclick = () => openDishEditor(null);
+  document.getElementById('import-dish').onclick = () => openImport();
   document.getElementById('build-meal').onclick = () => openMealBuilder(null);
   const groInput = document.getElementById('grocery-add');
   const groSubmit = () => { groceryAdd(groInput.value); groInput.value = ''; };
