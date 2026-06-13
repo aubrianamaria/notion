@@ -253,6 +253,23 @@
     .btn-delete { background: #fbe9e9; color: #c0392b; border: 1.5px solid #f0cccc; border-radius: 12px; padding: 12px 14px; font-weight: 800; font-family: inherit; cursor: pointer; }
     .meal-edit-actions { display: flex; gap: 10px; margin-top: 22px; border-top: 1px solid var(--line); padding-top: 18px; }
     .meal-edit-actions button { flex: 1; }
+
+    /* meal (combo) cards + coverage + dish rows */
+    .t-meal { background: radial-gradient(130% 130% at 25% 15%, #ffe9c7 0%, #f0a979 100%); }
+    .meal .meta.dish-list { display: block; font-weight: 700; color: var(--muted); line-height: 1.35; }
+    .view-note { color: var(--muted); font-size: .82rem; font-weight: 600; margin: -6px 0 14px; }
+    .coverage { display: flex; flex-wrap: wrap; gap: 6px; }
+    .cov { font-size: .74rem; font-weight: 800; padding: 4px 9px; border-radius: 8px; background: #f3ede3; color: #8a8276; }
+    .cov.ok { background: var(--accent-soft); color: var(--accent); }
+    .cov.gap { background: #fdecdd; color: var(--warn); }
+    .dish-rows { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .dish-row { display: flex; align-items: center; gap: 11px; padding: 10px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+    .dish-row:hover { border-color: #d9cebd; }
+    .dish-row .d-emoji { font-size: 1.5rem; flex: 0 0 auto; }
+    .dish-row .d-name { display: flex; flex-direction: column; font-weight: 800; font-size: .92rem; }
+    .dish-row .d-name small { font-weight: 700; color: var(--muted); font-size: .74rem; }
+    .dish-row .d-status { margin-left: auto; font-size: .74rem; font-weight: 800; color: var(--warn); white-space: nowrap; }
+    .dish-row .d-status.ok { color: var(--accent); }
   </style>
 </head>
 <body>
@@ -267,18 +284,18 @@
   </header>
 
   <main>
-    <!-- PANTRY VIEW -->
-    <section class="view" id="view-pantry">
+    <!-- INGREDIENTS VIEW -->
+    <section class="view" id="view-ingredients">
       <div class="view-head">
-        <h2>Your Pantry</h2>
+        <h2>Ingredients</h2>
         <span class="count-pill" id="pantry-count">0 on hand</span>
       </div>
       <div class="toolbar">
         <label class="search">
-          🔍 <input id="item-search" placeholder="Search groceries…" autocomplete="off" />
+          🔍 <input id="item-search" placeholder="Search ingredients…" autocomplete="off" />
         </label>
-        <button class="btn" id="add-item">➕ Add item</button>
-        <button class="btn ghost" id="clear-pantry">Clear all</button>
+        <button class="btn" id="add-item">➕ Add</button>
+        <button class="btn ghost" id="clear-pantry">Clear</button>
       </div>
       <div class="staple-row">
         <label class="switch"><input type="checkbox" id="staples-toggle" checked /><span class="slider"></span></label>
@@ -290,21 +307,31 @@
       </div>
     </section>
 
+    <!-- DISHES VIEW -->
+    <section class="view" id="view-dishes">
+      <div class="view-head">
+        <h2>Dishes</h2>
+        <span class="count-pill" id="dishes-count">0 dishes</span>
+      </div>
+      <div class="toolbar"><button class="btn" id="add-dish">➕ Add a dish</button></div>
+      <div id="dishes-list"></div>
+    </section>
+
     <!-- MEALS VIEW -->
     <section class="view" id="view-meals">
       <div class="view-head">
-        <h2>Meal Ideas</h2>
+        <h2>Meals</h2>
         <span class="count-pill" id="meals-count">0 meals</span>
       </div>
-      <div class="toolbar">
-        <button class="btn" id="add-meal">➕ Add your own meal</button>
-      </div>
+      <div class="toolbar"><button class="btn" id="build-meal">➕ Build a meal</button></div>
+      <p class="view-note">A meal is a combo of dishes — a main plus sides — scored on combined nutrition.</p>
       <div id="meals-list"></div>
     </section>
   </main>
 
   <nav class="tabs">
-    <button data-view="pantry" class="on"><span class="ic">🧺</span>Pantry</button>
+    <button data-view="ingredients" class="on"><span class="ic">🧺</span>Ingredients</button>
+    <button data-view="dishes"><span class="ic">🍳</span><span>Dishes <span class="nav-badge" id="nav-dish-badge" style="display:none">0</span></span></button>
     <button data-view="meals"><span class="ic">🍽️</span><span>Meals <span class="nav-badge" id="nav-meal-badge" style="display:none">0</span></span></button>
   </nav>
 
@@ -328,7 +355,7 @@
     { id: 'spice',    name: 'Spices & Basics', emoji: '🧂' },
   ];
 
-  const DEFAULT_ITEMS = [
+  const DEFAULT_INGREDIENTS = [
     // produce
     { id:'banana', name:'Banana', aisle:'produce', emoji:'🍌', kw:'banana' },
     { id:'apple', name:'Apple', aisle:'produce', emoji:'🍎', kw:'apple' },
@@ -409,7 +436,7 @@
      nutrition is per serving
      baby: { ok, note }  — note covers safe prep / portioning
      ========================================================= */
-  const DEFAULT_MEALS = [
+  const DEFAULT_DISHES = [
     {
       id:'oatmeal', name:'Banana Oatmeal', type:'breakfast', time:10, servings:2, emoji:'🥣', kw:'oatmeal-banana',
       ing:['oats','banana','milk','cinnamon'],
@@ -602,43 +629,108 @@
       baby:{ ok:true, note:'Melt cheese on soft bread, add finely diced tomato, and cut into strips. Quick, warm, and easy for little hands.' },
       steps:['Top bread with cheese and diced tomato.','Broil until bubbly.','Cut into fingers.']
     },
+    // ---- simple side dishes (great for building balanced meals) ----
+    {
+      id:'sidebroccoli', name:'Steamed Broccoli', type:'side', time:8, servings:4, emoji:'🥦',
+      ing:['broccoli','oliveoil'],
+      nutri:{ kcal:60, protein:4, sodium:30, fiber:4 }, veg:true,
+      baby:{ ok:true, note:'Steam until very soft; cut florets into small, gummable pieces.' },
+      steps:['Steam broccoli until tender.','Toss with a little olive oil.']
+    },
+    {
+      id:'siderice', name:'Brown Rice', type:'side', time:30, servings:4, emoji:'🍚',
+      ing:['brownrice'],
+      nutri:{ kcal:150, protein:3, sodium:5, fiber:2 }, veg:true,
+      baby:{ ok:true, note:'Serve soft and slightly sticky; mash a little so it’s easy to scoop.' },
+      steps:['Simmer brown rice until tender, ~25–30 min.','Fluff with a fork.']
+    },
+    {
+      id:'sidesalad', name:'Garden Side Salad', type:'side', time:10, servings:4, emoji:'🥗',
+      ing:['lettuce','cucumber','tomato','oliveoil'],
+      nutri:{ kcal:90, protein:2, sodium:120, fiber:2 }, veg:true,
+      baby:{ ok:false, note:'' },
+      steps:['Chop lettuce, cucumber and tomato.','Toss with a drizzle of olive oil.']
+    },
+    {
+      id:'applesauce', name:'Cinnamon Applesauce', type:'side', time:15, servings:4, emoji:'🍎',
+      ing:['apple','cinnamon'],
+      nutri:{ kcal:80, protein:0, sodium:0, fiber:3 }, veg:true,
+      baby:{ ok:true, note:'Perfectly smooth for baby and sweetened only by the apple — no added sugar needed.' },
+      steps:['Simmer chopped apple with a splash of water and a pinch of cinnamon.','Mash or blend smooth.']
+    },
+    {
+      id:'sidepeas', name:'Buttered Peas', type:'side', time:8, servings:4, emoji:'🟢',
+      ing:['peas','butter'],
+      nutri:{ kcal:90, protein:4, sodium:45, fiber:4 }, veg:true,
+      baby:{ ok:true, note:'Soft and easy to pick up; lightly smash for newer eaters to reduce rolling.' },
+      steps:['Warm peas through.','Toss with a little butter.']
+    },
+    {
+      id:'sidesweetpotato', name:'Roasted Sweet Potato', type:'side', time:30, servings:4, emoji:'🍠',
+      ing:['sweetpotato','oliveoil'],
+      nutri:{ kcal:130, protein:2, sodium:40, fiber:4 }, veg:true,
+      baby:{ ok:true, note:'Roast until very soft; mash into smooth bites for baby.' },
+      steps:['Cube sweet potato and toss with olive oil.','Roast at 425°F for ~25 min until soft.']
+    },
+  ];
+
+  /* =========================================================
+     DATA — meals (saved combinations of dishes)
+     dishIds reference dishes above; nutrition is summed live.
+     ========================================================= */
+  const DEFAULT_MEALS = [
+    { id:'mealchickenplate', name:'Balanced Chicken Plate', emoji:'🍗', dishIds:['roastchicken','sidesalad','siderice'] },
+    { id:'mealbabylunch', name:'Baby’s Favorite Lunch', emoji:'👶', dishIds:['avotoast','applesauce','sidepeas'] },
+    { id:'mealtaconight', name:'Taco Night', emoji:'🌮', dishIds:['fishtacos','sidesalad'] },
   ];
 
   /* =========================================================
      STATE + persistence
      ========================================================= */
-  const LS_HAVE = 'p2p_have_v1';
   const LS_STAPLES = 'p2p_staples_v1';
-  const LS_CATALOG = 'p2p_catalog_v1';
-  let have = new Set(JSON.parse(localStorage.getItem(LS_HAVE) || '[]'));
+  const LS_INV = 'p2p_inv_v1';
+  const LS_CATALOG = 'p2p_catalog_v2';
+  const LS_CATALOG_V1 = 'p2p_catalog_v1';
   let assumeStaples = JSON.parse(localStorage.getItem(LS_STAPLES) ?? 'true');
   let activeGoals = new Set();
   let itemFilter = '';
-  let currentView = 'pantry';
+  let currentView = 'ingredients';
+  let pendingImg = null;
 
-  // Editable catalog: built-in defaults are the seed; the user's added/edited
-  // items & meals live in localStorage and take over once present.
-  let items = [], meals = [], ITEM_BY_ID = {}, pendingImg = null;
+  // Editable catalog (v2): ingredients → dishes → meals (a meal = saved combo of dishes)
+  let ingredients = [], dishes = [], meals = [], ING_BY_ID = {}, DISH_BY_ID = {};
   const clone = x => JSON.parse(JSON.stringify(x));
-  function reindex() { ITEM_BY_ID = Object.fromEntries(items.map(i => [i.id, i])); }
+  function reindex() {
+    ING_BY_ID = Object.fromEntries(ingredients.map(i => [i.id, i]));
+    DISH_BY_ID = Object.fromEntries(dishes.map(d => [d.id, d]));
+  }
+  function seedCatalog() { ingredients = clone(DEFAULT_INGREDIENTS); dishes = clone(DEFAULT_DISHES); meals = clone(DEFAULT_MEALS); }
   function loadCatalog() {
-    const raw = localStorage.getItem(LS_CATALOG);
-    if (raw) {
-      try { const c = JSON.parse(raw); items = c.items || []; meals = c.meals || []; }
-      catch (e) { items = clone(DEFAULT_ITEMS); meals = clone(DEFAULT_MEALS); }
-    } else { items = clone(DEFAULT_ITEMS); meals = clone(DEFAULT_MEALS); }
+    const v2 = localStorage.getItem(LS_CATALOG);
+    if (v2) {
+      try { const c = JSON.parse(v2); ingredients = c.ingredients || []; dishes = c.dishes || []; meals = c.meals || []; }
+      catch (e) { seedCatalog(); }
+    } else {
+      const v1 = localStorage.getItem(LS_CATALOG_V1); // migrate older "items + meals" shape → ingredients + dishes
+      if (v1) {
+        try { const c = JSON.parse(v1); ingredients = c.items || clone(DEFAULT_INGREDIENTS); dishes = c.meals || clone(DEFAULT_DISHES); meals = clone(DEFAULT_MEALS); }
+        catch (e) { seedCatalog(); }
+      } else seedCatalog();
+      reindex(); persist(); // write forward as v2
+    }
     reindex();
   }
-  function saveCatalog() { reindex(); localStorage.setItem(LS_CATALOG, JSON.stringify({ items, meals })); }
+  function saveCatalog() { reindex(); localStorage.setItem(LS_CATALOG, JSON.stringify({ version: 2, ingredients, dishes, meals })); }
   function persist() {
     try { saveCatalog(); return true; }
     catch (e) { alert('Couldn’t save — you may have added too many large photos. Try smaller images, or paste an image URL instead.'); return false; }
   }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
-  function uid(name) {
-    const base = (name || 'item').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 16) || 'item';
+  function uid(name, prefix) {
+    const base = (prefix || '') + ((name || 'x').toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 16) || 'x');
+    const taken = id => ING_BY_ID[id] || DISH_BY_ID[id] || meals.some(m => m.id === id);
     let id = base, n = 1;
-    while (ITEM_BY_ID[id] || meals.some(m => m.id === id)) id = base + (++n);
+    while (taken(id)) id = base + (++n);
     return id;
   }
   // shrink an uploaded image to keep localStorage small, then hand back a data URL
@@ -659,6 +751,22 @@
     };
     reader.readAsDataURL(file);
   }
+
+  // ---- inventory levels: 'full' | 'low' | 'out' (out = absent). Phase 1 toggles full/out. ----
+  let inv = {};
+  (function loadInv() {
+    const raw = localStorage.getItem(LS_INV);
+    if (raw) { try { inv = JSON.parse(raw) || {}; } catch (e) { inv = {}; } return; }
+    const oldHave = localStorage.getItem('p2p_have_v1'); // migrate the old on-hand checkbox set
+    if (oldHave) { try { JSON.parse(oldHave).forEach(id => inv[id] = 'full'); } catch (e) {} }
+    localStorage.setItem(LS_INV, JSON.stringify(inv));
+  })();
+  function levelOf(id) { return inv[id] || 'out'; }
+  function onHand(id) { return inv[id] === 'full' || inv[id] === 'low'; }
+  function saveInv() { localStorage.setItem(LS_INV, JSON.stringify(inv)); }
+  function setLevel(id, l) { if (l === 'out') delete inv[id]; else inv[id] = l; saveInv(); }
+  function onHandCount() { return Object.keys(inv).filter(id => inv[id] && inv[id] !== 'out').length; }
+
   loadCatalog();
 
   const GOALS = [
@@ -671,27 +779,47 @@
     { id:'baby',        label:'👶 For baby',     test:m => m.baby && m.baby.ok, baby:true },
   ];
 
-  function save() {
-    localStorage.setItem(LS_HAVE, JSON.stringify([...have]));
-    localStorage.setItem(LS_STAPLES, JSON.stringify(assumeStaples));
-  }
-  // gradient tile class for each pantry aisle / meal type (no external images)
+  function save() { localStorage.setItem(LS_STAPLES, JSON.stringify(assumeStaples)); }
   function aisleClass(aisleId) { return 'g-' + aisleId; }
   function typeClass(type) { return 't-' + type; }
 
-  /* a pantry item counts as "have" if checked, or if it's a staple and the toggle is on */
+  // an ingredient counts as "on hand" if stocked, or if it's a staple and the toggle is on
   function hasItem(id) {
-    if (have.has(id)) return true;
-    if (assumeStaples && ITEM_BY_ID[id] && ITEM_BY_ID[id].staple) return true;
-    return false;
+    if (onHand(id)) return true;
+    const it = ING_BY_ID[id];
+    return !!(assumeStaples && it && it.staple);
   }
 
-  function mealStatus(m) {
-    const ing = (m.ing || []).filter(id => ITEM_BY_ID[id]); // ignore any deleted items
+  // status for a single dish, from its ingredient list
+  function dishStatus(d) {
+    const ing = (d.ing || []).filter(id => ING_BY_ID[id]); // ignore deleted ingredients
     const total = ing.length;
-    const haveCount = ing.filter(hasItem).length;
     const missing = ing.filter(id => !hasItem(id));
-    return { total, haveCount, missing, ratio: total ? haveCount/total : 0, ready: missing.length === 0 };
+    return { total, haveCount: total - missing.length, missing, ratio: total ? (total - missing.length)/total : 0, ready: missing.length === 0 };
+  }
+
+  // a meal = combo of dishes. derive its dishes, combined nutrition, status, flags.
+  function mealDishes(m) { return (m.dishIds || []).map(id => DISH_BY_ID[id]).filter(Boolean); }
+  function combinedNutri(ds) {
+    return ds.reduce((a, d) => ({
+      kcal: a.kcal + (d.nutri.kcal||0), protein: a.protein + (d.nutri.protein||0),
+      sodium: a.sodium + (d.nutri.sodium||0), fiber: a.fiber + (d.nutri.fiber||0),
+    }), { kcal:0, protein:0, sodium:0, fiber:0 });
+  }
+  function mealStatus(m) {
+    const ds = mealDishes(m);
+    const ids = [...new Set(ds.flatMap(d => (d.ing||[]).filter(id => ING_BY_ID[id])))];
+    const missing = ids.filter(id => !hasItem(id));
+    return { total: ids.length, haveCount: ids.length - missing.length, missing, ratio: ids.length ? (ids.length-missing.length)/ids.length : 0, ready: missing.length === 0 };
+  }
+  function mealMeta(m) { // a dish-like object so the GOALS tests work on meals too
+    const ds = mealDishes(m);
+    return {
+      nutri: combinedNutri(ds),
+      veg: ds.length > 0 && ds.every(d => d.veg),
+      baby: { ok: ds.length > 0 && ds.every(d => d.baby && d.baby.ok) },
+      time: ds.reduce((a, d) => Math.max(a, d.time||0), 0),
+    };
   }
 
   /* =========================================================
@@ -706,56 +834,59 @@
       c.textContent = g.label;
       c.onclick = () => {
         activeGoals.has(g.id) ? activeGoals.delete(g.id) : activeGoals.add(g.id);
-        renderGoals(); renderMeals();
+        renderGoals(); renderActive();
       };
       el.appendChild(c);
     });
   }
+  function renderActive() {
+    if (currentView === 'dishes') renderDishes();
+    else if (currentView === 'meals') renderMeals();
+  }
 
   /* =========================================================
-     RENDER — pantry
+     RENDER — ingredients
      ========================================================= */
-  function renderPantry() {
+  function renderIngredients() {
     const wrap = document.getElementById('aisles');
     wrap.innerHTML = '';
     const q = itemFilter.trim().toLowerCase();
 
     AISLES.forEach(aisle => {
-      const list = items.filter(i => i.aisle === aisle.id && (!q || i.name.toLowerCase().includes(q)));
+      const list = ingredients.filter(i => i.aisle === aisle.id && (!q || i.name.toLowerCase().includes(q)));
       if (!list.length) return;
       const sec = document.createElement('div');
       sec.className = 'aisle';
-      const haveN = list.filter(i => have.has(i.id)).length;
+      const haveN = list.filter(i => onHand(i.id)).length;
       sec.innerHTML = `<h3><span class="emoji">${aisle.emoji}</span> ${aisle.name} <small>${haveN}/${list.length}</small></h3>`;
       const grid = document.createElement('div');
       grid.className = 'grid';
-      list.forEach(i => grid.appendChild(itemCard(i)));
+      list.forEach(i => grid.appendChild(ingredientCard(i)));
       sec.appendChild(grid);
       wrap.appendChild(sec);
     });
 
     if (!wrap.children.length) {
-      wrap.innerHTML = `<div class="empty"><div class="big">🔍</div><h3>No matches</h3><p>Nothing matches “${itemFilter}”.</p></div>`;
+      wrap.innerHTML = `<div class="empty"><div class="big">🔍</div><h3>No matches</h3><p>Nothing matches “${esc(itemFilter)}”.</p></div>`;
     }
-    document.getElementById('pantry-count').textContent = `${have.size} on hand`;
+    document.getElementById('pantry-count').textContent = `${onHandCount()} on hand`;
   }
 
-  function itemCard(i) {
+  function ingredientCard(i) {
     const card = document.createElement('div');
-    card.className = 'item' + (have.has(i.id) ? ' have' : '');
+    card.className = 'item' + (onHand(i.id) ? ' have' : '');
     const ph = i.img ? `<img class="ph" src="${esc(i.img)}" alt="" onerror="this.style.display='none'">` : '';
     card.innerHTML = `
       <div class="thumb ${aisleClass(i.aisle)}">
         <span class="fallback">${i.emoji || '🛒'}</span>
         ${ph}
-        <button class="edit-badge" title="Edit item">✎</button>
+        <button class="edit-badge" title="Edit ingredient">✎</button>
         <div class="tick">✓</div>
       </div>
       <div class="name">${esc(i.name)}</div>`;
-    card.querySelector('.edit-badge').onclick = (e) => { e.stopPropagation(); openItemEditor(i.id); };
+    card.querySelector('.edit-badge').onclick = (e) => { e.stopPropagation(); openIngredientEditor(i.id); };
     card.onclick = () => {
-      have.has(i.id) ? have.delete(i.id) : have.add(i.id);
-      save();
+      setLevel(i.id, onHand(i.id) ? 'out' : 'full');
       card.classList.toggle('have');
       updateCounts();
     };
@@ -763,133 +894,224 @@
   }
 
   /* =========================================================
-     RENDER — meals
+     RENDER — dishes
      ========================================================= */
-  function renderMeals() {
-    document.getElementById('meals-list').innerHTML = '';
+  function badges(nutri) {
+    return [
+      `<span class="badge ${nutri.protein>=25?'good':''}">${nutri.protein}g protein</span>`,
+      `<span class="badge ${nutri.kcal<=380?'good':''}">${nutri.kcal} cal</span>`,
+      `<span class="badge ${nutri.sodium<=400?'good':''}">${nutri.sodium}mg Na</span>`,
+      `<span class="badge ${nutri.fiber>=6?'good':''}">${nutri.fiber}g fiber</span>`,
+    ].join('');
+  }
+  function readyTag(s) {
+    if (s.total === 0) return { tag:'No ingredients', cls:'' };
+    if (s.ready) return { tag:'✓ Ready to cook', cls:'ready' };
+    if (s.missing.length <= 2) return { tag:`Almost — need ${s.missing.length}`, cls:'close' };
+    return { tag:`${s.haveCount}/${s.total} on hand`, cls:'' };
+  }
 
-    let list = meals.slice();
-    // apply goal filters
+  function renderDishes() {
+    const wrap = document.getElementById('dishes-list');
+    wrap.innerHTML = '';
+    let list = dishes.slice();
     GOALS.forEach(g => { if (activeGoals.has(g.id)) list = list.filter(g.test); });
-
-    // attach status, sort by readiness then ratio then fewer missing
-    list = list.map(m => ({ m, s: mealStatus(m) }))
-               .sort((a,b) => (b.s.ratio - a.s.ratio) || (a.s.missing.length - b.s.missing.length) || (a.m.time - b.m.time));
-
+    list = list.map(d => ({ d, s: dishStatus(d) }))
+               .sort((a,b) => (b.s.ratio - a.s.ratio) || (a.s.missing.length - b.s.missing.length) || (a.d.time - b.d.time));
     const readyN = list.filter(x => x.s.ready).length;
-    document.getElementById('meals-count').textContent =
-      `${list.length} meal${list.length!==1?'s':''}${readyN ? ' · ' + readyN + ' ready' : ''}`;
-
-    const wrap = document.getElementById('meals-list');
+    document.getElementById('dishes-count').textContent =
+      `${list.length} dish${list.length!==1?'es':''}${readyN ? ' · ' + readyN + ' ready' : ''}`;
     if (!list.length) {
-      wrap.innerHTML = `<div class="empty"><div class="big">🍽️</div><h3>No meals match those goals</h3><p>Try turning off a filter, checking more pantry items, or adding your own meal above.</p></div>`;
+      wrap.innerHTML = `<div class="empty"><div class="big">🍳</div><h3>No dishes match those goals</h3><p>Turn off a filter, stock more ingredients, or add your own dish above.</p></div>`;
       return;
     }
     const grid = document.createElement('div');
     grid.className = 'meals';
-    list.forEach(({m,s}) => grid.appendChild(mealCard(m,s)));
+    list.forEach(({d,s}) => grid.appendChild(dishCard(d,s)));
     wrap.appendChild(grid);
   }
 
-  function badges(m) {
-    const out = [];
-    out.push(`<span class="badge ${m.nutri.protein>=25?'good':''}">${m.nutri.protein}g protein</span>`);
-    out.push(`<span class="badge ${m.nutri.kcal<=380?'good':''}">${m.nutri.kcal} cal</span>`);
-    out.push(`<span class="badge ${m.nutri.sodium<=400?'good':''}">${m.nutri.sodium}mg Na</span>`);
-    out.push(`<span class="badge ${m.nutri.fiber>=6?'good':''}">${m.nutri.fiber}g fiber</span>`);
-    return out.join('');
-  }
-
-  function mealCard(m, s) {
+  function dishCard(d, s) {
     const card = document.createElement('div');
     card.className = 'meal';
-    let tag, cls;
-    if (s.ready) { tag = '✓ Ready to cook'; cls = 'ready'; }
-    else if (s.missing.length <= 2) { tag = `Almost — need ${s.missing.length}`; cls = 'close'; }
-    else { tag = `${s.haveCount}/${s.total} on hand`; cls = ''; }
-
+    const { tag, cls } = readyTag(s);
     let ingText;
     if (s.total === 0) ingText = `<span class="miss">No ingredients set — tap to edit</span>`;
     else if (s.ready) ingText = `<span class="allset">You have everything ✨</span>`;
-    else ingText = `Just need <span class="miss">${s.missing.map(id => esc(ITEM_BY_ID[id].name)).join(', ')}</span>`;
-
-    const ph = m.img ? `<img class="ph" src="${esc(m.img)}" alt="" onerror="this.style.display='none'">` : '';
+    else ingText = `Just need <span class="miss">${s.missing.map(id => esc(ING_BY_ID[id].name)).join(', ')}</span>`;
+    const ph = d.img ? `<img class="ph" src="${esc(d.img)}" alt="" onerror="this.style.display='none'">` : '';
     card.innerHTML = `
-      <div class="photo ${typeClass(m.type)}">
-        <div class="fallback">${m.emoji || '🍽️'}</div>
+      <div class="photo ${typeClass(d.type)}">
+        <div class="fallback">${d.emoji || '🍽️'}</div>
         ${ph}
         <span class="ready-tag ${cls}">${tag}</span>
-        <span class="type-tag">${esc(m.type)}</span>
+        <span class="type-tag">${esc(d.type)}</span>
       </div>
       <div class="body">
-        <h3>${esc(m.name)}</h3>
-        <div class="meta"><span>⏱ ${m.time} min</span><span>🍽 ${m.servings} servings</span></div>
-        <div class="nutri">${badges(m)}</div>
-        ${m.baby && m.baby.ok ? '<span class="baby-flag">👶 Baby-friendly (12 mo+)</span>' : ''}
+        <h3>${esc(d.name)}</h3>
+        <div class="meta"><span>⏱ ${d.time} min</span><span>🍽 ${d.servings} servings</span></div>
+        <div class="nutri">${badges(d.nutri)}</div>
+        ${d.baby && d.baby.ok ? '<span class="baby-flag">👶 Baby-friendly (12 mo+)</span>' : ''}
         <div class="ingline">${ingText}</div>
       </div>`;
-    card.onclick = () => openModal(m, mealStatus(m));
+    card.onclick = () => openDishModal(d.id);
     return card;
   }
 
   /* =========================================================
-     MODAL
+     RENDER — meals (combos of dishes)
      ========================================================= */
-  function openModal(m, s) {
-    const el = document.getElementById('modal');
-    const ingItems = (m.ing || []).filter(id => ITEM_BY_ID[id]).map(id => {
-      const it = ITEM_BY_ID[id];
-      const got = hasItem(id);
-      const staple = it.staple && !have.has(id) && assumeStaples;
-      return `<li class="${got?'have':'need'}">
-        <span class="dot"></span>${it.emoji || ''} ${esc(it.name)}
-        ${got ? (staple ? '<span class="tag-staple">staple</span>' : '') : '<span class="tag-need">need</span>'}
-      </li>`;
-    }).join('') || '<li class="need"><span class="dot"></span>No ingredients set yet</li>';
-    const ph = m.img ? `<img class="ph" src="${esc(m.img)}" alt="">` : '';
+  function renderMeals() {
+    const wrap = document.getElementById('meals-list');
+    wrap.innerHTML = '';
+    let list = meals.map(m => ({ m, s: mealStatus(m), meta: mealMeta(m) }));
+    GOALS.forEach(g => { if (activeGoals.has(g.id)) list = list.filter(x => g.test(x.meta)); });
+    list.sort((a,b) => (b.s.ratio - a.s.ratio) || (a.s.missing.length - b.s.missing.length));
+    const readyN = list.filter(x => x.s.ready).length;
+    document.getElementById('meals-count').textContent =
+      `${list.length} meal${list.length!==1?'s':''}${readyN ? ' · ' + readyN + ' ready' : ''}`;
+    if (!meals.length) {
+      wrap.innerHTML = `<div class="empty"><div class="big">🍽️</div><h3>No meals yet</h3><p>A meal combines dishes — like a main plus a side. Tap “Build a meal” to make your first.</p></div>`;
+      return;
+    }
+    if (!list.length) {
+      wrap.innerHTML = `<div class="empty"><div class="big">🍽️</div><h3>No meals match those goals</h3><p>Try turning off a filter.</p></div>`;
+      return;
+    }
+    const grid = document.createElement('div');
+    grid.className = 'meals';
+    list.forEach(({m,s,meta}) => grid.appendChild(mealCard(m,s,meta)));
+    wrap.appendChild(grid);
+  }
 
+  function mealCard(m, s, meta) {
+    const ds = mealDishes(m);
+    const card = document.createElement('div');
+    card.className = 'meal';
+    const { tag, cls } = readyTag(s);
+    const fallback = m.emoji || ds.map(d => d.emoji || '🍽️').slice(0,3).join('') || '🍽️';
+    const ph = m.img ? `<img class="ph" src="${esc(m.img)}" alt="" onerror="this.style.display='none'">` : '';
+    const dishNames = ds.length ? ds.map(d => esc(d.name)).join(' · ') : 'No dishes yet — tap to edit';
+    card.innerHTML = `
+      <div class="photo t-meal">
+        <div class="fallback" style="font-size:2.6rem">${fallback}</div>
+        ${ph}
+        <span class="ready-tag ${cls}">${tag}</span>
+        <span class="type-tag">${ds.length} dish${ds.length!==1?'es':''}</span>
+      </div>
+      <div class="body">
+        <h3>${esc(m.name)}</h3>
+        <div class="meta dish-list">${dishNames}</div>
+        <div class="nutri">${badges(meta.nutri)}</div>
+        ${meta.baby.ok ? '<span class="baby-flag">👶 Baby-friendly (12 mo+)</span>' : ''}
+        <div class="ingline">${s.ready ? '<span class="allset">You have everything ✨</span>' : (s.total===0 ? '' : `Just need <span class="miss">${s.missing.map(id=>esc(ING_BY_ID[id].name)).join(', ')}</span>`)}</div>
+      </div>`;
+    card.onclick = () => openMealModal(m.id);
+    return card;
+  }
+
+  /* =========================================================
+     DETAIL MODALS
+     ========================================================= */
+  function ingLI(id) {
+    const it = ING_BY_ID[id];
+    if (!it) return '';
+    const got = hasItem(id);
+    const staple = it.staple && !onHand(id) && assumeStaples;
+    return `<li class="${got?'have':'need'}"><span class="dot"></span>${it.emoji || ''} ${esc(it.name)}
+      ${got ? (staple ? '<span class="tag-staple">staple</span>' : '') : '<span class="tag-need">need</span>'}</li>`;
+  }
+
+  function openDishModal(id) {
+    const d = DISH_BY_ID[id]; if (!d) return;
+    const s = dishStatus(d);
+    const el = document.getElementById('modal');
+    const ingItems = (d.ing||[]).filter(x => ING_BY_ID[x]).map(ingLI).join('') || '<li class="need"><span class="dot"></span>No ingredients set yet</li>';
+    const ph = d.img ? `<img class="ph" src="${esc(d.img)}" alt="">` : '';
     el.innerHTML = `
-      <div class="hero ${typeClass(m.type)}">
-        <div class="fallback">${m.emoji || '🍽️'}</div>
+      <div class="hero ${typeClass(d.type)}">
+        <div class="fallback">${d.emoji || '🍽️'}</div>
+        ${ph}
+        <button class="close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="inner">
+        <h2>${esc(d.name)}</h2>
+        <div class="sub">${esc(d.type)} · ⏱ ${d.time} min · 🍽 ${d.servings} servings${d.veg?' · 🌱 vegetarian':''}</div>
+        <div class="nutri-grid">
+          <div class="n"><b>${d.nutri.kcal}</b><span>calories</span></div>
+          <div class="n"><b>${d.nutri.protein}g</b><span>protein</span></div>
+          <div class="n"><b>${d.nutri.sodium}</b><span>mg sodium</span></div>
+          <div class="n"><b>${d.nutri.fiber}g</b><span>fiber</span></div>
+        </div>
+        <section>
+          <h4>Ingredients ${s.total===0 ? '' : (s.ready ? '· you have it all ✨' : '· need '+s.missing.length)}</h4>
+          <ul class="ing-list">${ingItems}</ul>
+        </section>
+        ${(d.steps && d.steps.length) ? `<section><h4>How to make it</h4><ol class="steps">${d.steps.map(st=>`<li>${esc(st)}</li>`).join('')}</ol></section>` : ''}
+        ${d.baby && d.baby.ok && d.baby.note ? `<section><div class="baby-box"><h4>👶 For your 1-year-old</h4><p>${esc(d.baby.note)}</p></div></section>` : ''}
+        <div class="meal-edit-actions">
+          <button class="btn-cancel" id="detail-edit">✎ Edit dish</button>
+          <button class="btn-delete" id="detail-delete">Delete</button>
+        </div>
+      </div>`;
+    el.querySelector('#detail-edit').onclick = () => openDishEditor(d.id);
+    el.querySelector('#detail-delete').onclick = () => {
+      if (!confirm(`Delete "${d.name}"? It will also be removed from any meals that include it.`)) return;
+      dishes = dishes.filter(x => x.id !== d.id);
+      meals.forEach(m => { if (m.dishIds) m.dishIds = m.dishIds.filter(x => x !== d.id); });
+      if (persist()) { renderDishes(); updateCounts(); closeModal(); }
+    };
+    openModalShell();
+  }
+
+  function coverageRow(meta, ds) {
+    const n = meta.nutri;
+    const hasVeg = ds.some(d => (d.ing||[]).some(id => ING_BY_ID[id] && ING_BY_ID[id].aisle === 'produce'));
+    const items = [
+      { label:'Protein', ok: n.protein>=25, txt:`${n.protein}g` },
+      { label:'Fiber', ok: n.fiber>=6, txt:`${n.fiber}g` },
+      { label:'Sodium', ok: n.sodium<=700, txt:`${n.sodium}mg` },
+      { label:'Veggies', ok: hasVeg, txt: hasVeg?'✓':'add one' },
+    ];
+    return items.map(c => `<span class="cov ${c.ok?'ok':'gap'}">${c.ok?'✓':'•'} ${c.label} <b>${c.txt}</b></span>`).join('');
+  }
+
+  function openMealModal(id) {
+    const m = meals.find(x => x.id === id); if (!m) return;
+    const ds = mealDishes(m), meta = mealMeta(m), s = mealStatus(m);
+    const el = document.getElementById('modal');
+    const fallback = m.emoji || ds.map(d=>d.emoji||'🍽️').slice(0,3).join('') || '🍽️';
+    const ph = m.img ? `<img class="ph" src="${esc(m.img)}" alt="">` : '';
+    const dishRows = ds.length ? ds.map(d => {
+      const s2 = dishStatus(d);
+      return `<li class="dish-row" data-d="${d.id}"><span class="d-emoji">${d.emoji||'🍽️'}</span>
+        <span class="d-name">${esc(d.name)}<small>${d.nutri.protein}g protein · ${d.nutri.kcal} cal</small></span>
+        <span class="d-status ${s2.ready?'ok':''}">${s2.ready?'have it':s2.missing.length+' to get'}</span></li>`;
+    }).join('') : '<li class="need" style="padding:10px 12px">No dishes in this meal yet.</li>';
+    el.innerHTML = `
+      <div class="hero t-meal">
+        <div class="fallback">${fallback}</div>
         ${ph}
         <button class="close" onclick="closeModal()">✕</button>
       </div>
       <div class="inner">
         <h2>${esc(m.name)}</h2>
-        <div class="sub">${esc(m.type)} · ⏱ ${m.time} min · 🍽 ${m.servings} servings${m.veg?' · 🌱 vegetarian':''}</div>
-
+        <div class="sub">${ds.length} dish${ds.length!==1?'es':''}${meta.veg?' · 🌱 vegetarian':''}${meta.baby.ok?' · 👶 baby-friendly':''}</div>
         <div class="nutri-grid">
-          <div class="n"><b>${m.nutri.kcal}</b><span>calories</span></div>
-          <div class="n"><b>${m.nutri.protein}g</b><span>protein</span></div>
-          <div class="n"><b>${m.nutri.sodium}</b><span>mg sodium</span></div>
-          <div class="n"><b>${m.nutri.fiber}g</b><span>fiber</span></div>
+          <div class="n"><b>${meta.nutri.kcal}</b><span>calories</span></div>
+          <div class="n"><b>${meta.nutri.protein}g</b><span>protein</span></div>
+          <div class="n"><b>${meta.nutri.sodium}</b><span>mg sodium</span></div>
+          <div class="n"><b>${meta.nutri.fiber}g</b><span>fiber</span></div>
         </div>
-
-        <section>
-          <h4>Ingredients ${s.total===0 ? '' : (s.ready ? '· you have it all ✨' : '· need '+s.missing.length)}</h4>
-          <ul class="ing-list">${ingItems}</ul>
-        </section>
-
-        ${(m.steps && m.steps.length) ? `
-        <section>
-          <h4>How to make it</h4>
-          <ol class="steps">${m.steps.map(st=>`<li>${esc(st)}</li>`).join('')}</ol>
-        </section>` : ''}
-
-        ${m.baby && m.baby.ok && m.baby.note ? `
-        <section>
-          <div class="baby-box">
-            <h4>👶 For your 1-year-old</h4>
-            <p>${esc(m.baby.note)}</p>
-          </div>
-        </section>` : ''}
-
+        <section><h4>Nutrition coverage</h4><div class="coverage">${coverageRow(meta, ds)}</div></section>
+        <section><h4>Dishes in this meal</h4><ul class="dish-rows">${dishRows}</ul></section>
         <div class="meal-edit-actions">
-          <button class="btn-cancel" id="detail-edit">✎ Edit this meal</button>
+          <button class="btn-cancel" id="detail-edit">✎ Edit meal</button>
           <button class="btn-delete" id="detail-delete">Delete</button>
         </div>
       </div>`;
-    el.querySelector('#detail-edit').onclick = () => openMealEditor(m.id);
+    el.querySelectorAll('.dish-row').forEach(r => r.onclick = () => openDishModal(r.dataset.d));
+    el.querySelector('#detail-edit').onclick = () => openMealBuilder(m.id);
     el.querySelector('#detail-delete').onclick = () => {
       if (!confirm(`Delete "${m.name}"?`)) return;
       meals = meals.filter(x => x.id !== m.id);
@@ -915,53 +1137,56 @@
      ========================================================= */
   function switchView(v) {
     currentView = v;
-    document.getElementById('view-pantry').classList.toggle('active', v==='pantry');
+    document.getElementById('view-ingredients').classList.toggle('active', v==='ingredients');
+    document.getElementById('view-dishes').classList.toggle('active', v==='dishes');
     document.getElementById('view-meals').classList.toggle('active', v==='meals');
+    document.getElementById('goals').style.display = (v === 'ingredients') ? 'none' : 'flex';
     document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.view===v));
+    if (v==='dishes') renderDishes();
     if (v==='meals') renderMeals();
   }
+  function setBadge(id, n) {
+    const b = document.getElementById(id);
+    b.textContent = n; b.style.display = n ? 'inline-block' : 'none';
+  }
   function updateCounts() {
-    const readyN = meals.filter(m => mealStatus(m).ready).length;
-    const badge = document.getElementById('nav-meal-badge');
-    badge.textContent = readyN;
-    badge.style.display = readyN ? 'inline-block' : 'none';
-    document.getElementById('pantry-count').textContent = `${have.size} on hand`;
+    setBadge('nav-dish-badge', dishes.filter(d => dishStatus(d).ready).length);
+    setBadge('nav-meal-badge', meals.filter(m => mealStatus(m).ready).length);
+    document.getElementById('pantry-count').textContent = `${onHandCount()} on hand`;
+    if (currentView === 'dishes') renderDishes();
     if (currentView === 'meals') renderMeals();
   }
 
   /* =========================================================
-     EDITORS — add / edit / delete items & meals
+     EDITORS — ingredients, dishes, meal builder
      ========================================================= */
-  function wireUploader(el, prefix, getEmoji) {
-    const file = el.querySelector('#' + prefix + '-file');
-    const preview = el.querySelector('#' + prefix + '-preview');
+  function wireUploader(el, p, getEmoji, defEmoji, maxSize) {
+    const file = el.querySelector('#'+p+'-file'), preview = el.querySelector('#'+p+'-preview');
     file.onchange = () => {
       const f = file.files[0]; if (!f) return;
-      fileToResizedDataURL(f, prefix === 'm' ? 640 : 480, url => {
+      fileToResizedDataURL(f, maxSize, url => {
         if (url) { pendingImg = url; preview.innerHTML = `<img src="${url}">`; }
         else alert('Sorry, that image could not be read.');
       });
     };
-    el.querySelector('#' + prefix + '-imgurl').oninput = e => {
+    el.querySelector('#'+p+'-imgurl').oninput = e => {
       const v = e.target.value.trim();
       if (v) { pendingImg = v; preview.innerHTML = `<img src="${esc(v)}" onerror="this.remove()">`; }
     };
-    el.querySelector('#' + prefix + '-clearimg').onclick = () => {
-      pendingImg = null;
-      el.querySelector('#' + prefix + '-imgurl').value = '';
-      preview.textContent = getEmoji() || (prefix === 'm' ? '🍽️' : '🛒');
+    el.querySelector('#'+p+'-clearimg').onclick = () => {
+      pendingImg = null; el.querySelector('#'+p+'-imgurl').value = ''; preview.textContent = getEmoji() || defEmoji;
     };
   }
 
-  function openItemEditor(id) {
+  function openIngredientEditor(id) {
     const editing = id != null;
-    const it = editing ? ITEM_BY_ID[id] : { name:'', aisle:'produce', emoji:'🥕', img:null, staple:false };
+    const it = editing ? ING_BY_ID[id] : { name:'', aisle:'produce', emoji:'🥕', img:null, staple:false };
     pendingImg = it.img || null;
     const aisleOpts = AISLES.map(a => `<option value="${a.id}" ${a.id===it.aisle?'selected':''}>${a.emoji} ${a.name}</option>`).join('');
     const el = document.getElementById('modal');
     el.innerHTML = `
       <div class="editor">
-        <h2>${editing ? 'Edit item' : 'Add grocery item'}</h2>
+        <h2>${editing ? 'Edit ingredient' : 'Add ingredient'}</h2>
         <div class="form-field"><label>Name</label><input type="text" id="i-name" value="${esc(it.name)}" placeholder="e.g. Greek Yogurt"></div>
         <div class="form-row">
           <div class="form-field"><label>Aisle</label><select id="i-aisle">${aisleOpts}</select></div>
@@ -979,50 +1204,43 @@
           <input type="text" id="i-imgurl" placeholder="…or paste an image URL" style="margin-top:8px">
           <div class="hint">Uploaded photos are shrunk and saved on this device.</div>
         </div>
-        <div class="form-field"><label class="check-line"><input type="checkbox" id="i-staple" ${it.staple?'checked':''}> Assume always on hand (staple — won’t block meal matches)</label></div>
+        <div class="form-field"><label class="check-line"><input type="checkbox" id="i-staple" ${it.staple?'checked':''}> Assume always on hand (staple — won’t block matches)</label></div>
         <div class="btn-row">
-          <button class="btn-primary" id="i-save">${editing ? 'Save changes' : 'Add item'}</button>
+          <button class="btn-primary" id="i-save">${editing ? 'Save changes' : 'Add ingredient'}</button>
           ${editing ? '<button class="btn-delete" id="i-delete">Delete</button>' : ''}
           <button class="btn-cancel" id="i-cancel">Cancel</button>
         </div>
       </div>`;
     openModalShell();
-    wireUploader(el, 'i', () => el.querySelector('#i-emoji').value);
+    wireUploader(el, 'i', () => el.querySelector('#i-emoji').value, '🛒', 480);
     el.querySelector('#i-cancel').onclick = closeModal;
     el.querySelector('#i-save').onclick = () => {
       const name = el.querySelector('#i-name').value.trim();
       if (!name) { el.querySelector('#i-name').focus(); return; }
-      const obj = {
-        id: editing ? id : uid(name),
-        name,
-        aisle: el.querySelector('#i-aisle').value,
-        emoji: el.querySelector('#i-emoji').value.trim() || '🛒',
-        staple: el.querySelector('#i-staple').checked,
-      };
+      const obj = { id: editing ? id : uid(name), name, aisle: el.querySelector('#i-aisle').value, emoji: el.querySelector('#i-emoji').value.trim() || '🛒', staple: el.querySelector('#i-staple').checked };
       if (pendingImg) obj.img = pendingImg;
-      if (editing) { items[items.findIndex(x => x.id === id)] = obj; }
-      else items.push(obj);
+      if (editing) ingredients[ingredients.findIndex(x => x.id === id)] = obj; else ingredients.push(obj);
       if (!persist()) return;
-      renderPantry(); updateCounts(); closeModal();
+      renderIngredients(); updateCounts(); closeModal();
     };
     if (editing) el.querySelector('#i-delete').onclick = () => {
-      if (!confirm(`Delete "${it.name}"? It will also be removed from any meals that use it.`)) return;
-      items = items.filter(x => x.id !== id);
-      meals.forEach(m => { if (m.ing) m.ing = m.ing.filter(x => x !== id); });
-      have.delete(id); save();
-      if (persist()) { renderPantry(); renderMeals(); updateCounts(); closeModal(); }
+      if (!confirm(`Delete "${it.name}"? It will be removed from any dishes that use it.`)) return;
+      ingredients = ingredients.filter(x => x.id !== id);
+      dishes.forEach(d => { if (d.ing) d.ing = d.ing.filter(x => x !== id); });
+      delete inv[id]; saveInv();
+      if (persist()) { renderIngredients(); renderDishes(); updateCounts(); closeModal(); }
     };
   }
 
-  function openMealEditor(id) {
+  function openDishEditor(id) {
     const editing = id != null;
-    const m = editing ? meals.find(x => x.id === id)
+    const d = editing ? DISH_BY_ID[id]
                       : { name:'', type:'dinner', time:20, servings:2, emoji:'🍽️', img:null, ing:[], nutri:{kcal:0,protein:0,sodium:0,fiber:0}, veg:false, baby:{ok:false,note:''}, steps:[] };
-    pendingImg = m.img || null;
-    const typeOpts = ['breakfast','lunch','dinner','snack'].map(t => `<option ${t===m.type?'selected':''}>${t}</option>`).join('');
-    const chosen = new Set(m.ing || []);
+    pendingImg = d.img || null;
+    const typeOpts = ['breakfast','lunch','dinner','side','snack'].map(t => `<option ${t===d.type?'selected':''}>${t}</option>`).join('');
+    const chosen = new Set(d.ing || []);
     const picker = AISLES.map(a => {
-      const its = items.filter(i => i.aisle === a.id);
+      const its = ingredients.filter(i => i.aisle === a.id);
       if (!its.length) return '';
       return `<div class="grp">${a.emoji} ${a.name}</div>` +
         its.map(i => `<label class="ing-pick"><input type="checkbox" value="${i.id}" ${chosen.has(i.id)?'checked':''}> ${i.emoji||''} ${esc(i.name)}</label>`).join('');
@@ -1030,88 +1248,144 @@
     const el = document.getElementById('modal');
     el.innerHTML = `
       <div class="editor">
-        <h2>${editing ? 'Edit meal' : 'Add a meal'}</h2>
-        <div class="form-field"><label>Meal name</label><input type="text" id="m-name" value="${esc(m.name)}" placeholder="e.g. Veggie Pasta Bake"></div>
+        <h2>${editing ? 'Edit dish' : 'Add a dish'}</h2>
+        <div class="form-field"><label>Dish name</label><input type="text" id="d-name" value="${esc(d.name)}" placeholder="e.g. Roast Chicken"></div>
         <div class="form-row">
-          <div class="form-field"><label>Type</label><select id="m-type">${typeOpts}</select></div>
-          <div class="form-field" style="flex:0 0 84px"><label>Emoji</label><input type="text" id="m-emoji" value="${esc(m.emoji||'')}" maxlength="4"></div>
+          <div class="form-field"><label>Type</label><select id="d-type">${typeOpts}</select></div>
+          <div class="form-field" style="flex:0 0 84px"><label>Emoji</label><input type="text" id="d-emoji" value="${esc(d.emoji||'')}" maxlength="4"></div>
         </div>
         <div class="form-row">
-          <div class="form-field"><label>Time (min)</label><input type="number" id="m-time" value="${m.time||0}" min="0"></div>
-          <div class="form-field"><label>Servings</label><input type="number" id="m-serv" value="${m.servings||1}" min="1"></div>
+          <div class="form-field"><label>Time (min)</label><input type="number" id="d-time" value="${d.time||0}" min="0"></div>
+          <div class="form-field"><label>Servings</label><input type="number" id="d-serv" value="${d.servings||1}" min="1"></div>
         </div>
         <div class="form-field">
           <label>Photo (optional)</label>
           <div class="uploader">
-            <div class="preview" id="m-preview">${pendingImg ? `<img src="${esc(pendingImg)}">` : (m.emoji||'🍽️')}</div>
+            <div class="preview" id="d-preview">${pendingImg ? `<img src="${esc(pendingImg)}">` : (d.emoji||'🍽️')}</div>
             <div class="up-actions">
-              <label class="btn file-btn">📷 Upload photo<input type="file" accept="image/*" id="m-file" style="display:none"></label>
-              <button class="btn ghost" id="m-clearimg" type="button">Use emoji instead</button>
+              <label class="btn file-btn">📷 Upload photo<input type="file" accept="image/*" id="d-file" style="display:none"></label>
+              <button class="btn ghost" id="d-clearimg" type="button">Use emoji instead</button>
             </div>
           </div>
-          <input type="text" id="m-imgurl" placeholder="…or paste an image URL" style="margin-top:8px">
+          <input type="text" id="d-imgurl" placeholder="…or paste an image URL" style="margin-top:8px">
         </div>
         <div class="form-field">
-          <label>Ingredients (from your pantry)</label>
-          <div class="ing-picker" id="m-ings">${picker}</div>
-          <div class="hint">Tick what this meal needs. If something’s missing, add it on the Pantry tab first.</div>
+          <label>Ingredients</label>
+          <div class="ing-picker" id="d-ings">${picker}</div>
+          <div class="hint">Tick what this dish needs. Missing one? Add it on the Ingredients tab first.</div>
         </div>
         <div class="form-field"><label>Nutrition (per serving)</label>
           <div class="form-row">
-            <div class="form-field"><label class="hint">Calories</label><input type="number" id="m-kcal" value="${m.nutri.kcal||0}" min="0"></div>
-            <div class="form-field"><label class="hint">Protein (g)</label><input type="number" id="m-prot" value="${m.nutri.protein||0}" min="0"></div>
+            <div class="form-field"><label class="hint">Calories</label><input type="number" id="d-kcal" value="${d.nutri.kcal||0}" min="0"></div>
+            <div class="form-field"><label class="hint">Protein (g)</label><input type="number" id="d-prot" value="${d.nutri.protein||0}" min="0"></div>
           </div>
           <div class="form-row">
-            <div class="form-field"><label class="hint">Sodium (mg)</label><input type="number" id="m-sod" value="${m.nutri.sodium||0}" min="0"></div>
-            <div class="form-field"><label class="hint">Fiber (g)</label><input type="number" id="m-fib" value="${m.nutri.fiber||0}" min="0"></div>
+            <div class="form-field"><label class="hint">Sodium (mg)</label><input type="number" id="d-sod" value="${d.nutri.sodium||0}" min="0"></div>
+            <div class="form-field"><label class="hint">Fiber (g)</label><input type="number" id="d-fib" value="${d.nutri.fiber||0}" min="0"></div>
           </div>
         </div>
-        <div class="form-field"><label class="check-line"><input type="checkbox" id="m-veg" ${m.veg?'checked':''}> 🌱 Vegetarian</label></div>
-        <div class="form-field"><label class="check-line"><input type="checkbox" id="m-baby" ${m.baby&&m.baby.ok?'checked':''}> 👶 Baby-friendly (12 mo+)</label></div>
-        <div class="form-field" id="m-babywrap" style="${m.baby&&m.baby.ok?'':'display:none'}">
+        <div class="form-field"><label class="check-line"><input type="checkbox" id="d-veg" ${d.veg?'checked':''}> 🌱 Vegetarian</label></div>
+        <div class="form-field"><label class="check-line"><input type="checkbox" id="d-baby" ${d.baby&&d.baby.ok?'checked':''}> 👶 Baby-friendly (12 mo+)</label></div>
+        <div class="form-field" id="d-babywrap" style="${d.baby&&d.baby.ok?'':'display:none'}">
           <label>Note for baby (safe prep / portioning)</label>
-          <textarea id="m-babynote" placeholder="e.g. Mash soft, cut into finger strips, skip added salt…">${esc(m.baby?m.baby.note:'')}</textarea>
+          <textarea id="d-babynote" placeholder="e.g. Mash soft, cut into finger strips, skip added salt…">${esc(d.baby?d.baby.note:'')}</textarea>
         </div>
-        <div class="form-field"><label>Steps (one per line)</label><textarea id="m-steps" placeholder="Boil the pasta\nMake the sauce\nCombine and bake">${esc((m.steps||[]).join('\n'))}</textarea></div>
+        <div class="form-field"><label>Steps (one per line)</label><textarea id="d-steps" placeholder="Boil the pasta&#10;Make the sauce&#10;Combine and serve">${esc((d.steps||[]).join('\n'))}</textarea></div>
         <div class="btn-row">
-          <button class="btn-primary" id="m-save">${editing ? 'Save changes' : 'Add meal'}</button>
-          ${editing ? '<button class="btn-delete" id="m-delete">Delete</button>' : ''}
-          <button class="btn-cancel" id="m-cancel">Cancel</button>
+          <button class="btn-primary" id="d-save">${editing ? 'Save changes' : 'Add dish'}</button>
+          ${editing ? '<button class="btn-delete" id="d-delete">Delete</button>' : ''}
+          <button class="btn-cancel" id="d-cancel">Cancel</button>
         </div>
       </div>`;
     openModalShell();
-    wireUploader(el, 'm', () => el.querySelector('#m-emoji').value);
-    el.querySelector('#m-baby').onchange = e => { el.querySelector('#m-babywrap').style.display = e.target.checked ? '' : 'none'; };
-    el.querySelector('#m-cancel').onclick = closeModal;
-    el.querySelector('#m-save').onclick = () => {
-      const name = el.querySelector('#m-name').value.trim();
-      if (!name) { el.querySelector('#m-name').focus(); return; }
-      const babyOn = el.querySelector('#m-baby').checked;
+    wireUploader(el, 'd', () => el.querySelector('#d-emoji').value, '🍽️', 640);
+    el.querySelector('#d-baby').onchange = e => { el.querySelector('#d-babywrap').style.display = e.target.checked ? '' : 'none'; };
+    el.querySelector('#d-cancel').onclick = closeModal;
+    el.querySelector('#d-save').onclick = () => {
+      const name = el.querySelector('#d-name').value.trim();
+      if (!name) { el.querySelector('#d-name').focus(); return; }
+      const babyOn = el.querySelector('#d-baby').checked;
       const obj = {
         id: editing ? id : uid(name),
-        name,
-        type: el.querySelector('#m-type').value,
-        time: +el.querySelector('#m-time').value || 0,
-        servings: +el.querySelector('#m-serv').value || 1,
-        emoji: el.querySelector('#m-emoji').value.trim() || '🍽️',
-        ing: [...el.querySelectorAll('#m-ings input:checked')].map(c => c.value),
-        nutri: {
-          kcal: +el.querySelector('#m-kcal').value || 0,
-          protein: +el.querySelector('#m-prot').value || 0,
-          sodium: +el.querySelector('#m-sod').value || 0,
-          fiber: +el.querySelector('#m-fib').value || 0,
-        },
-        veg: el.querySelector('#m-veg').checked,
-        baby: { ok: babyOn, note: babyOn ? el.querySelector('#m-babynote').value.trim() : '' },
-        steps: el.querySelector('#m-steps').value.split('\n').map(s => s.trim()).filter(Boolean),
+        name, type: el.querySelector('#d-type').value,
+        time: +el.querySelector('#d-time').value || 0,
+        servings: +el.querySelector('#d-serv').value || 1,
+        emoji: el.querySelector('#d-emoji').value.trim() || '🍽️',
+        ing: [...el.querySelectorAll('#d-ings input:checked')].map(c => c.value),
+        nutri: { kcal:+el.querySelector('#d-kcal').value||0, protein:+el.querySelector('#d-prot').value||0, sodium:+el.querySelector('#d-sod').value||0, fiber:+el.querySelector('#d-fib').value||0 },
+        veg: el.querySelector('#d-veg').checked,
+        baby: { ok: babyOn, note: babyOn ? el.querySelector('#d-babynote').value.trim() : '' },
+        steps: el.querySelector('#d-steps').value.split('\n').map(s => s.trim()).filter(Boolean),
       };
       if (pendingImg) obj.img = pendingImg;
-      if (editing) { meals[meals.findIndex(x => x.id === id)] = obj; }
-      else meals.push(obj);
+      if (editing) dishes[dishes.findIndex(x => x.id === id)] = obj; else dishes.push(obj);
+      if (!persist()) return;
+      renderDishes(); updateCounts(); closeModal();
+    };
+    if (editing) el.querySelector('#d-delete').onclick = () => {
+      if (!confirm(`Delete "${d.name}"? It will also be removed from any meals.`)) return;
+      dishes = dishes.filter(x => x.id !== id);
+      meals.forEach(m => { if (m.dishIds) m.dishIds = m.dishIds.filter(x => x !== id); });
+      if (persist()) { renderDishes(); updateCounts(); closeModal(); }
+    };
+  }
+
+  function openMealBuilder(id) {
+    const editing = id != null;
+    const m = editing ? meals.find(x => x.id === id) : { name:'', emoji:'', img:null, dishIds:[] };
+    pendingImg = m.img || null;
+    const chosen = new Set(m.dishIds || []);
+    const order = ['breakfast','lunch','dinner','side','snack'];
+    const byType = {};
+    dishes.forEach(d => { (byType[d.type] = byType[d.type] || []).push(d); });
+    const picker = order.filter(t => byType[t]).map(t =>
+      `<div class="grp">${t}</div>` + byType[t].map(d =>
+        `<label class="ing-pick"><input type="checkbox" value="${d.id}" ${chosen.has(d.id)?'checked':''}> ${d.emoji||'🍽️'} ${esc(d.name)} <small style="color:var(--muted);margin-left:auto">${d.nutri.protein}g·${d.nutri.kcal}cal</small></label>`
+      ).join('')
+    ).join('') || '<div class="hint" style="padding:8px">No dishes yet — add some on the Dishes tab first.</div>';
+    const el = document.getElementById('modal');
+    el.innerHTML = `
+      <div class="editor">
+        <h2>${editing ? 'Edit meal' : 'Build a meal'}</h2>
+        <div class="form-field"><label>Meal name</label><input type="text" id="mb-name" value="${esc(m.name)}" placeholder="e.g. Sunday Family Dinner"></div>
+        <div class="form-field" style="max-width:130px"><label>Emoji (optional)</label><input type="text" id="mb-emoji" value="${esc(m.emoji||'')}" maxlength="4" placeholder="🍽️"></div>
+        <div class="form-field">
+          <label>Pick dishes (a main + sides)</label>
+          <div class="ing-picker" id="mb-dishes">${picker}</div>
+        </div>
+        <div class="form-field">
+          <label>Combined nutrition &amp; coverage</label>
+          <div class="nutri" id="mb-nutri"></div>
+          <div class="coverage" id="mb-cov" style="margin-top:8px"></div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary" id="mb-save">Save meal</button>
+          ${editing ? '<button class="btn-delete" id="mb-delete">Delete</button>' : ''}
+          <button class="btn-cancel" id="mb-cancel">Cancel</button>
+        </div>
+      </div>`;
+    openModalShell();
+    const recompute = () => {
+      const ds = [...el.querySelectorAll('#mb-dishes input:checked')].map(c => DISH_BY_ID[c.value]).filter(Boolean);
+      const nutri = combinedNutri(ds);
+      const meta = { nutri, veg: ds.length>0 && ds.every(d=>d.veg), baby:{ok:ds.length>0&&ds.every(d=>d.baby&&d.baby.ok)} };
+      el.querySelector('#mb-nutri').innerHTML = badges(nutri);
+      el.querySelector('#mb-cov').innerHTML = coverageRow(meta, ds);
+    };
+    el.querySelectorAll('#mb-dishes input').forEach(c => c.onchange = recompute);
+    recompute();
+    el.querySelector('#mb-cancel').onclick = closeModal;
+    el.querySelector('#mb-save').onclick = () => {
+      const name = el.querySelector('#mb-name').value.trim();
+      if (!name) { el.querySelector('#mb-name').focus(); return; }
+      const dishIds = [...el.querySelectorAll('#mb-dishes input:checked')].map(c => c.value);
+      const obj = { id: editing ? id : uid(name, 'meal'), name, emoji: el.querySelector('#mb-emoji').value.trim(), dishIds };
+      if (pendingImg) obj.img = pendingImg;
+      if (editing) meals[meals.findIndex(x => x.id === id)] = obj; else meals.push(obj);
       if (!persist()) return;
       renderMeals(); updateCounts(); closeModal();
     };
-    if (editing) el.querySelector('#m-delete').onclick = () => {
+    if (editing) el.querySelector('#mb-delete').onclick = () => {
       if (!confirm(`Delete "${m.name}"?`)) return;
       meals = meals.filter(x => x.id !== id);
       if (persist()) { renderMeals(); updateCounts(); closeModal(); }
@@ -1122,24 +1396,27 @@
      WIRE UP
      ========================================================= */
   document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => switchView(b.dataset.view));
-  document.getElementById('item-search').addEventListener('input', e => { itemFilter = e.target.value; renderPantry(); });
+  document.getElementById('item-search').addEventListener('input', e => { itemFilter = e.target.value; renderIngredients(); });
   document.getElementById('clear-pantry').onclick = () => {
-    if (confirm('Uncheck every item in your pantry?')) { have.clear(); save(); renderPantry(); updateCounts(); }
+    if (confirm('Mark every ingredient as out / not on hand?')) { inv = {}; saveInv(); renderIngredients(); updateCounts(); }
   };
   const stToggle = document.getElementById('staples-toggle');
   stToggle.checked = assumeStaples;
-  stToggle.onchange = () => { assumeStaples = stToggle.checked; save(); updateCounts(); };
+  stToggle.onchange = () => { assumeStaples = stToggle.checked; save(); renderIngredients(); updateCounts(); };
 
-  document.getElementById('add-item').onclick = () => openItemEditor(null);
-  document.getElementById('add-meal').onclick = () => openMealEditor(null);
+  document.getElementById('add-item').onclick = () => openIngredientEditor(null);
+  document.getElementById('add-dish').onclick = () => openDishEditor(null);
+  document.getElementById('build-meal').onclick = () => openMealBuilder(null);
   document.getElementById('restore-defaults').onclick = () => {
-    if (!confirm('Restore the original built-in items and meals?\n\nThis discards items and meals you’ve added or edited. Your pantry checkmarks are kept.')) return;
-    items = clone(DEFAULT_ITEMS); meals = clone(DEFAULT_MEALS);
-    if (persist()) { renderPantry(); renderMeals(); updateCounts(); }
+    if (!confirm('Restore the original built-in ingredients, dishes and meals?\n\nThis discards anything you’ve added or edited. Your on-hand inventory is kept.')) return;
+    seedCatalog();
+    if (persist()) { renderIngredients(); renderDishes(); renderMeals(); updateCounts(); }
   };
 
+  switchView('ingredients');
   renderGoals();
-  renderPantry();
+  renderIngredients();
+  renderDishes();
   renderMeals();
   updateCounts();
   </script>
