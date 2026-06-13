@@ -369,14 +369,37 @@
     .tile .t-ic { font-size: 1.6rem; margin-bottom: 4px; }
     .tile b { font-family: 'Fraunces', Georgia, serif; font-size: 1.5rem; }
     .tile span:last-child { color: var(--muted); font-weight: 700; font-size: .76rem; }
+
+    /* help button + brand layout */
+    .brand { width: 100%; justify-content: space-between; align-items: center; }
+    .brand-text { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .help-btn { flex: 0 0 auto; width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--card); color: var(--accent); font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.15rem; cursor: pointer; line-height: 1; }
+    .help-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+    /* tip banners */
+    .tip-slot:empty { display: none; }
+    .tip { display: flex; align-items: flex-start; gap: 10px; background: #fff7e8; border: 1px solid #f1e0bf; color: #7a5d2a; border-radius: 12px; padding: 11px 13px; font-size: .84rem; font-weight: 600; line-height: 1.4; margin-bottom: 16px; }
+    .tip .tip-ic { flex: 0 0 auto; }
+    .tip .tip-x { margin-left: auto; border: none; background: none; color: #b89653; font-size: 1rem; cursor: pointer; flex: 0 0 auto; padding: 0 2px; }
+    .tip .tip-x:hover { color: #7a5d2a; }
+
+    /* help guide */
+    .guide h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.06rem; margin: 18px 0 6px; }
+    .guide p.lead { color: var(--muted); font-size: .9rem; }
+    .guide ul { margin: 4px 0; padding-left: 20px; display: grid; gap: 5px; }
+    .guide li { font-size: .9rem; line-height: 1.45; }
+    .guide .welcome-emoji { text-align: center; font-size: 3rem; }
   </style>
 </head>
 <body>
   <header>
     <div class="head-inner">
       <div class="brand">
-        <h1>Pantry&nbsp;→&nbsp;Plate</h1>
-        <span class="sub">what's in the kitchen, what's for dinner</span>
+        <div class="brand-text">
+          <h1>Pantry&nbsp;→&nbsp;Plate</h1>
+          <span class="sub">what's in the kitchen, what's for dinner</span>
+        </div>
+        <button class="help-btn" id="help-btn" title="How to use" aria-label="Help">?</button>
       </div>
       <div class="goals" id="goals"></div>
     </div>
@@ -385,6 +408,7 @@
   <main>
     <!-- HOME VIEW -->
     <section class="view active" id="view-home">
+      <div class="tip-slot" id="tip-home"></div>
       <div id="home-body"></div>
     </section>
 
@@ -394,6 +418,7 @@
         <h2>Ingredients</h2>
         <span class="count-pill" id="pantry-count">0 on hand</span>
       </div>
+      <div class="tip-slot" id="tip-ingredients"></div>
       <div class="toolbar">
         <label class="search">
           🔍 <input id="item-search" placeholder="Search ingredients…" autocomplete="off" />
@@ -425,6 +450,7 @@
         <h2>Dishes</h2>
         <span class="count-pill" id="dishes-count">0 dishes</span>
       </div>
+      <div class="tip-slot" id="tip-dishes"></div>
       <div class="toolbar">
         <button class="btn" id="add-dish">➕ Add a dish</button>
         <button class="btn" id="import-dish">🔗 Import recipe</button>
@@ -438,6 +464,7 @@
         <h2>Meals</h2>
         <span class="count-pill" id="meals-count">0 meals</span>
       </div>
+      <div class="tip-slot" id="tip-meals"></div>
       <div class="toolbar"><button class="btn" id="build-meal">➕ Build a meal</button></div>
       <p class="view-note">A meal is a combo of dishes — a main plus sides — scored on combined nutrition.</p>
       <div id="meals-list"></div>
@@ -449,6 +476,7 @@
         <h2>Grocery List</h2>
         <span class="count-pill" id="grocery-count">0 items</span>
       </div>
+      <div class="tip-slot" id="tip-grocery"></div>
       <div class="toolbar">
         <label class="search">🔍 <input id="grocery-add" placeholder="Add something to buy…" autocomplete="off" /></label>
         <button class="btn" id="grocery-add-btn">Add</button>
@@ -1775,6 +1803,85 @@
   }
 
   /* =========================================================
+     HELP / ONBOARDING — guide, welcome, contextual tips
+     ========================================================= */
+  const LS_SEEN = 'p2p_seen_v1';
+  const LS_TIPS = 'p2p_tips_v1';
+  let tipsDismissed = new Set(JSON.parse(localStorage.getItem(LS_TIPS) || '[]'));
+  function saveTips() { localStorage.setItem(LS_TIPS, JSON.stringify([...tipsDismissed])); }
+  const TIPS = {
+    home: 'Your <b>Meal of the Day</b> favours things you can cook right now. Tap any tile to jump to a section.',
+    ingredients: 'Tap an item to cycle <b>Full → Low → Out</b>. Out items hop onto your grocery list. Tap ✎ to edit one.',
+    dishes: 'Tap a dish for the recipe, or <b>🍳 I made this</b> to log what you used. Add recipes with <b>🔗 Import</b>.',
+    meals: 'A meal = a main + sides. The <b>coverage</b> chips show if it’s balanced. Tap <b>➕ Build a meal</b>.',
+    grocery: 'This fills from anything you mark <b>Out</b>. Tap ✓ when you buy it — it restocks to Full.',
+  };
+  function showTipFor(v) {
+    const slot = document.getElementById('tip-' + v);
+    if (!slot) return;
+    if (!TIPS[v] || tipsDismissed.has(v)) { slot.innerHTML = ''; return; }
+    slot.innerHTML = `<div class="tip"><span class="tip-ic">💡</span><span>${TIPS[v]}</span><button class="tip-x" title="Dismiss" aria-label="Dismiss tip">✕</button></div>`;
+    slot.querySelector('.tip-x').onclick = () => { tipsDismissed.add(v); saveTips(); slot.innerHTML = ''; };
+  }
+
+  function openHelp() {
+    const el = document.getElementById('modal');
+    el.innerHTML = `
+      <div class="editor guide">
+        <h2>How to use Pantry → Plate</h2>
+        <p class="lead">Three layers: <b>Ingredients</b> (what you have) → <b>Dishes</b> (single recipes) → <b>Meals</b> (combos of dishes). Here’s the quick tour.</p>
+        <h3>🏠 Home</h3>
+        <ul><li>Your <b>Meal of the Day</b> plus everything you can cook right now.</li><li>Tap a stat tile to jump into a section.</li></ul>
+        <h3>🧺 Pantry</h3>
+        <ul><li>Tap an item to cycle <b>Full → Low → Out</b>. Out items go on your grocery list.</li><li>Tap <b>✎</b> on a card to edit it; <b>➕ Add</b> makes a new one. Give it a photo or emoji.</li><li>Staples (salt, oil…) are assumed on hand so they don’t block matches.</li></ul>
+        <h3>🍳 Dishes</h3>
+        <ul><li>Single recipes — tap one for ingredients (have vs. need), steps, nutrition and baby tips.</li><li><b>🔗 Import recipe</b> from a link or pasted text.</li><li>Tap <b>🍳 I made this</b> after cooking to quickly update what you used.</li></ul>
+        <h3>🍽️ Meals</h3>
+        <ul><li>Combine a main + sides into a meal. The <b>coverage</b> chips show if it’s balanced (protein, fiber, veggies…).</li><li>Tap <b>➕ Build a meal</b> to make your own.</li></ul>
+        <h3>🛒 List</h3>
+        <ul><li>Fills automatically from anything marked <b>Out</b>. Tap <b>✓</b> when you buy it (restocks to Full).</li><li>Quick-add anything at the top.</li></ul>
+        <h3>🎯 Goals &amp; 👶 Baby</h3>
+        <ul><li>The chips up top filter Dishes &amp; Meals — high-protein, low-sodium, quick, <b>👶 for baby</b>, and more.</li><li>Baby-friendly items include safe-prep notes for a 1-year-old.</li></ul>
+        <h3>💾 Your data</h3>
+        <ul><li><b>Backup &amp; restore</b> (Pantry tab) moves everything between devices.</li><li><b>✨ Add new built-ins</b> pulls in new library items as the app grows.</li></ul>
+        <div class="btn-row">
+          <button class="btn-primary" id="help-close">Got it</button>
+          <button class="btn" id="help-resettips">Show tips again</button>
+        </div>
+      </div>`;
+    openModalShell();
+    el.querySelector('#help-close').onclick = closeModal;
+    el.querySelector('#help-resettips').onclick = () => {
+      tipsDismissed.clear(); saveTips(); showTipFor(currentView); toast('Tips re-enabled 💡');
+    };
+  }
+
+  function openWelcome() {
+    const el = document.getElementById('modal');
+    el.innerHTML = `
+      <div class="editor guide">
+        <div class="welcome-emoji">🍽️</div>
+        <h2 style="text-align:center;margin-top:4px">Welcome!</h2>
+        <p class="lead" style="text-align:center">Plan meals from what’s already in your kitchen — for you and your family.</p>
+        <ul>
+          <li>🧺 Mark what you have in <b>Pantry</b>.</li>
+          <li>🍳 See <b>Dishes</b> you can make, ranked by what’s on hand.</li>
+          <li>🍽️ Combine dishes into balanced <b>Meals</b>.</li>
+          <li>🛒 Cook, log what you used, and your <b>grocery list</b> builds itself.</li>
+          <li>👶 Baby-friendly tips throughout for your little one.</li>
+        </ul>
+        <div class="btn-row">
+          <button class="btn-primary" id="welcome-go">Let’s go</button>
+          <button class="btn" id="welcome-tour">Show me how</button>
+        </div>
+      </div>`;
+    openModalShell();
+    const seen = () => localStorage.setItem(LS_SEEN, '1');
+    el.querySelector('#welcome-go').onclick = () => { seen(); closeModal(); };
+    el.querySelector('#welcome-tour').onclick = () => { seen(); openHelp(); };
+  }
+
+  /* =========================================================
      RENDER — home / landing
      ========================================================= */
   function greeting() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; }
@@ -1979,6 +2086,7 @@
     if (v==='dishes') renderDishes();
     if (v==='meals') renderMeals();
     if (v==='grocery') renderGrocery();
+    showTipFor(v);
   }
   function setBadge(id, n) {
     const b = document.getElementById(id);
@@ -2265,7 +2373,9 @@
   renderMeals();
   renderGrocery();
   updateCounts();
+  document.getElementById('help-btn').onclick = () => openHelp();
   switchView('home');
+  if (!localStorage.getItem(LS_SEEN)) openWelcome();
   </script>
 </body>
 </html>
