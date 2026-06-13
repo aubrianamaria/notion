@@ -270,6 +270,47 @@
     .dish-row .d-name small { font-weight: 700; color: var(--muted); font-size: .74rem; }
     .dish-row .d-status { margin-left: auto; font-size: .74rem; font-weight: 800; color: var(--warn); white-space: nowrap; }
     .dish-row .d-status.ok { color: var(--accent); }
+
+    /* inventory levels */
+    .item.lvl-full { border-color: var(--accent); }
+    .item.lvl-full .tick { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .item.lvl-low { border-color: var(--warn); }
+    .item.lvl-low .tick { background: var(--warn); border-color: var(--warn); color: #fff; font-size: .82rem; font-weight: 800; }
+    .item.lvl-out .tick { color: transparent; }
+    .lvl-legend { display: flex; gap: 13px; justify-content: center; flex-wrap: wrap; color: var(--muted); font-size: .73rem; font-weight: 700; margin: -2px 0 16px; }
+    .lvl-legend b { font-weight: 800; color: var(--ink); }
+    .lvl-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
+
+    /* grocery list */
+    .gro-aisle { font-weight: 800; font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 16px 4px 8px; }
+    .gro-row { display: flex; align-items: center; gap: 11px; padding: 11px 13px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; }
+    .gro-check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); background: #fff; cursor: pointer; flex: 0 0 auto; font-size: .82rem; color: transparent; font-weight: 800; transition: .15s; }
+    .gro-check:hover { border-color: var(--accent); color: var(--accent); }
+    .gro-name { font-weight: 700; font-size: .95rem; flex: 1; }
+    .gro-x { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 1rem; flex: 0 0 auto; padding: 4px; }
+    .gro-x:hover { color: var(--warn); }
+
+    /* cook sheet */
+    .cook-rows { display: grid; gap: 12px; margin-bottom: 4px; }
+    .cook-row { display: flex; align-items: center; gap: 10px; }
+    .cook-name { flex: 1; font-weight: 700; font-size: .9rem; }
+    .seg { display: flex; flex: 0 0 auto; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
+    .seg button { border: none; background: var(--card); font-family: inherit; font-weight: 800; font-size: .74rem; padding: 7px 11px; cursor: pointer; color: var(--muted); border-left: 1.5px solid var(--line); }
+    .seg button:first-child { border-left: none; }
+    .seg button.on { background: var(--accent); color: #fff; }
+    .seg button[data-lvl="low"].on { background: var(--warn); }
+    .seg button[data-lvl="out"].on { background: #c0392b; }
+
+    /* "I made this" button */
+    .cook-btn { width: 100%; background: var(--accent-soft); color: var(--accent); border: 1.5px solid #cfe6cf; border-radius: 12px; padding: 13px; font-weight: 800; font-family: inherit; cursor: pointer; margin-top: 20px; font-size: .98rem; }
+    .cook-btn:hover { filter: brightness(.98); }
+
+    /* toast */
+    .toast { position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 999px; font-weight: 800; font-size: .85rem; z-index: 200; opacity: 0; transition: opacity .25s; pointer-events: none; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+    .toast.show { opacity: 1; }
+
+    /* 4-tab nav sizing */
+    nav.tabs button { max-width: 150px; }
   </style>
 </head>
 <body>
@@ -301,6 +342,12 @@
         <label class="switch"><input type="checkbox" id="staples-toggle" checked /><span class="slider"></span></label>
         Assume basic staples on hand (salt, pepper, oil, water)
       </div>
+      <div class="lvl-legend">
+        Tap to cycle:
+        <span><span class="lvl-dot" style="background:var(--accent)"></span><b>Full</b></span>
+        <span><span class="lvl-dot" style="background:var(--warn)"></span><b>Low</b></span>
+        <span><span class="lvl-dot" style="background:#d9cebd"></span><b>Out</b> → grocery list</span>
+      </div>
       <div id="aisles"></div>
       <div style="text-align:center;margin-top:28px">
         <button class="btn ghost" id="restore-defaults" style="font-size:.74rem">↩︎ Restore default catalog</button>
@@ -327,13 +374,30 @@
       <p class="view-note">A meal is a combo of dishes — a main plus sides — scored on combined nutrition.</p>
       <div id="meals-list"></div>
     </section>
+
+    <!-- GROCERY VIEW -->
+    <section class="view" id="view-grocery">
+      <div class="view-head">
+        <h2>Grocery List</h2>
+        <span class="count-pill" id="grocery-count">0 items</span>
+      </div>
+      <div class="toolbar">
+        <label class="search">🔍 <input id="grocery-add" placeholder="Add something to buy…" autocomplete="off" /></label>
+        <button class="btn" id="grocery-add-btn">Add</button>
+      </div>
+      <p class="view-note">Tap ✓ when you’ve bought something — it restocks to Full and leaves the list.</p>
+      <div id="grocery-list"></div>
+    </section>
   </main>
 
   <nav class="tabs">
-    <button data-view="ingredients" class="on"><span class="ic">🧺</span>Ingredients</button>
+    <button data-view="ingredients" class="on"><span class="ic">🧺</span>Pantry</button>
     <button data-view="dishes"><span class="ic">🍳</span><span>Dishes <span class="nav-badge" id="nav-dish-badge" style="display:none">0</span></span></button>
     <button data-view="meals"><span class="ic">🍽️</span><span>Meals <span class="nav-badge" id="nav-meal-badge" style="display:none">0</span></span></button>
+    <button data-view="grocery"><span class="ic">🛒</span><span>List <span class="nav-badge" id="nav-grocery-badge" style="display:none">0</span></span></button>
   </nav>
+
+  <div class="toast" id="toast"></div>
 
   <!-- MEAL MODAL -->
   <div class="modal-bg" id="modal-bg">
@@ -767,6 +831,21 @@
   function setLevel(id, l) { if (l === 'out') delete inv[id]; else inv[id] = l; saveInv(); }
   function onHandCount() { return Object.keys(inv).filter(id => inv[id] && inv[id] !== 'out').length; }
 
+  // ---- grocery list: ingredient ids you intend to buy ----
+  const LS_GROCERY = 'p2p_grocery_v1';
+  let grocery = new Set(JSON.parse(localStorage.getItem(LS_GROCERY) || '[]'));
+  function saveGrocery() { localStorage.setItem(LS_GROCERY, JSON.stringify([...grocery])); }
+  // tap-cycle a level: full → low → out → full. out adds to list; back to full clears it.
+  function cycleLevel(id) {
+    const cur = levelOf(id);
+    const next = cur === 'full' ? 'low' : cur === 'low' ? 'out' : 'full';
+    setLevel(id, next);
+    if (next === 'out') grocery.add(id);
+    else if (next === 'full') grocery.delete(id);
+    saveGrocery();
+    return next;
+  }
+
   loadCatalog();
 
   const GOALS = [
@@ -872,22 +951,25 @@
     document.getElementById('pantry-count').textContent = `${onHandCount()} on hand`;
   }
 
+  const tickChar = l => l === 'full' ? '✓' : l === 'low' ? '½' : '';
   function ingredientCard(i) {
     const card = document.createElement('div');
-    card.className = 'item' + (onHand(i.id) ? ' have' : '');
+    const lvl = levelOf(i.id);
+    card.className = 'item lvl-' + lvl;
     const ph = i.img ? `<img class="ph" src="${esc(i.img)}" alt="" onerror="this.style.display='none'">` : '';
     card.innerHTML = `
       <div class="thumb ${aisleClass(i.aisle)}">
         <span class="fallback">${i.emoji || '🛒'}</span>
         ${ph}
         <button class="edit-badge" title="Edit ingredient">✎</button>
-        <div class="tick">✓</div>
+        <div class="tick">${tickChar(lvl)}</div>
       </div>
       <div class="name">${esc(i.name)}</div>`;
     card.querySelector('.edit-badge').onclick = (e) => { e.stopPropagation(); openIngredientEditor(i.id); };
     card.onclick = () => {
-      setLevel(i.id, onHand(i.id) ? 'out' : 'full');
-      card.classList.toggle('have');
+      const nl = cycleLevel(i.id);
+      card.className = 'item lvl-' + nl;
+      card.querySelector('.tick').textContent = tickChar(nl);
       updateCounts();
     };
     return card;
@@ -1049,11 +1131,13 @@
         </section>
         ${(d.steps && d.steps.length) ? `<section><h4>How to make it</h4><ol class="steps">${d.steps.map(st=>`<li>${esc(st)}</li>`).join('')}</ol></section>` : ''}
         ${d.baby && d.baby.ok && d.baby.note ? `<section><div class="baby-box"><h4>👶 For your 1-year-old</h4><p>${esc(d.baby.note)}</p></div></section>` : ''}
+        <button class="cook-btn" id="cook-this">🍳 I made this</button>
         <div class="meal-edit-actions">
           <button class="btn-cancel" id="detail-edit">✎ Edit dish</button>
           <button class="btn-delete" id="detail-delete">Delete</button>
         </div>
       </div>`;
+    el.querySelector('#cook-this').onclick = () => openCookSheet(d.ing || [], d.name);
     el.querySelector('#detail-edit').onclick = () => openDishEditor(d.id);
     el.querySelector('#detail-delete').onclick = () => {
       if (!confirm(`Delete "${d.name}"? It will also be removed from any meals that include it.`)) return;
@@ -1105,11 +1189,13 @@
         </div>
         <section><h4>Nutrition coverage</h4><div class="coverage">${coverageRow(meta, ds)}</div></section>
         <section><h4>Dishes in this meal</h4><ul class="dish-rows">${dishRows}</ul></section>
+        <button class="cook-btn" id="cook-this">🍳 I made this meal</button>
         <div class="meal-edit-actions">
           <button class="btn-cancel" id="detail-edit">✎ Edit meal</button>
           <button class="btn-delete" id="detail-delete">Delete</button>
         </div>
       </div>`;
+    el.querySelector('#cook-this').onclick = () => openCookSheet([...new Set(ds.flatMap(d => d.ing || []))], m.name);
     el.querySelectorAll('.dish-row').forEach(r => r.onclick = () => openDishModal(r.dataset.d));
     el.querySelector('#detail-edit').onclick = () => openMealBuilder(m.id);
     el.querySelector('#detail-delete').onclick = () => {
@@ -1133,17 +1219,113 @@
   });
 
   /* =========================================================
+     RENDER — grocery list
+     ========================================================= */
+  function renderGrocery() {
+    const wrap = document.getElementById('grocery-list');
+    wrap.innerHTML = '';
+    const ids = [...grocery].filter(id => ING_BY_ID[id]);
+    document.getElementById('grocery-count').textContent = `${ids.length} item${ids.length!==1?'s':''}`;
+    if (!ids.length) {
+      wrap.innerHTML = `<div class="empty"><div class="big">🛒</div><h3>Nothing to buy 🎉</h3><p>Mark an ingredient “out” on the Ingredients tab, or tap “I made this” after cooking, and it lands here.</p></div>`;
+      return;
+    }
+    AISLES.forEach(aisle => {
+      const list = ids.filter(id => ING_BY_ID[id].aisle === aisle.id);
+      if (!list.length) return;
+      const h = document.createElement('div');
+      h.className = 'gro-aisle';
+      h.textContent = `${aisle.emoji} ${aisle.name}`;
+      wrap.appendChild(h);
+      list.forEach(id => wrap.appendChild(groceryRow(ING_BY_ID[id])));
+    });
+  }
+  function groceryRow(i) {
+    const row = document.createElement('div');
+    row.className = 'gro-row';
+    row.innerHTML = `<button class="gro-check" title="Got it — back in stock">✓</button>
+      <span class="gro-name">${i.emoji||''} ${esc(i.name)}</span>
+      <button class="gro-x" title="Remove from list">✕</button>`;
+    row.querySelector('.gro-check').onclick = () => { // bought it → restock to full, clear from list
+      setLevel(i.id, 'full'); grocery.delete(i.id); saveGrocery();
+      renderGrocery(); renderIngredients(); updateCounts();
+    };
+    row.querySelector('.gro-x').onclick = () => { grocery.delete(i.id); saveGrocery(); renderGrocery(); updateCounts(); };
+    return row;
+  }
+  function groceryAdd(name) {
+    name = (name || '').trim(); if (!name) return;
+    let it = ingredients.find(i => i.name.toLowerCase() === name.toLowerCase());
+    if (!it) { it = { id: uid(name), name, aisle:'pantry', emoji:'🛒' }; ingredients.push(it); if (!persist()) return; }
+    grocery.add(it.id); saveGrocery();
+    renderGrocery(); renderIngredients(); updateCounts();
+    toast(`Added ${it.name}`);
+  }
+
+  /* =========================================================
+     "I made this" — quick inventory update after cooking
+     ========================================================= */
+  function openCookSheet(ingIds, title) {
+    const ids = [...new Set((ingIds||[]).filter(id => ING_BY_ID[id] && !ING_BY_ID[id].staple))];
+    const el = document.getElementById('modal');
+    const rows = ids.map(id => {
+      const it = ING_BY_ID[id];
+      const cur = levelOf(id) === 'out' ? 'full' : levelOf(id);
+      return `<div class="cook-row" data-id="${id}">
+        <span class="cook-name">${it.emoji||''} ${esc(it.name)}</span>
+        <div class="seg">
+          <button data-lvl="full" class="${cur==='full'?'on':''}">Have</button>
+          <button data-lvl="low" class="${cur==='low'?'on':''}">Low</button>
+          <button data-lvl="out" class="${cur==='out'?'on':''}">Out</button>
+        </div></div>`;
+    }).join('') || '<p class="hint">No trackable ingredients to update (just staples).</p>';
+    el.innerHTML = `
+      <div class="editor">
+        <h2>🍳 Made “${esc(title)}”</h2>
+        <p class="view-note">How much of each is left? Anything marked <b>Out</b> goes on your grocery list.</p>
+        <div class="cook-rows">${rows}</div>
+        <div class="btn-row">
+          <button class="btn-primary" id="cook-save">Update inventory</button>
+          <button class="btn-cancel" id="cook-cancel">Cancel</button>
+        </div>
+      </div>`;
+    openModalShell();
+    el.querySelectorAll('.seg').forEach(seg => seg.querySelectorAll('button').forEach(b => b.onclick = () => {
+      seg.querySelectorAll('button').forEach(x => x.classList.remove('on')); b.classList.add('on');
+    }));
+    el.querySelector('#cook-cancel').onclick = closeModal;
+    el.querySelector('#cook-save').onclick = () => {
+      el.querySelectorAll('.cook-row').forEach(r => {
+        const id = r.dataset.id, sel = r.querySelector('.seg button.on');
+        const lvl = sel ? sel.dataset.lvl : 'full';
+        setLevel(id, lvl);
+        if (lvl === 'out') grocery.add(id); else if (lvl === 'full') grocery.delete(id);
+      });
+      saveGrocery(); closeModal();
+      renderIngredients(); renderDishes(); renderMeals(); renderGrocery(); updateCounts();
+      toast('Inventory updated 🧺');
+    };
+  }
+
+  let toastTimer = null;
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  /* =========================================================
      NAV + counts
      ========================================================= */
   function switchView(v) {
     currentView = v;
-    document.getElementById('view-ingredients').classList.toggle('active', v==='ingredients');
-    document.getElementById('view-dishes').classList.toggle('active', v==='dishes');
-    document.getElementById('view-meals').classList.toggle('active', v==='meals');
-    document.getElementById('goals').style.display = (v === 'ingredients') ? 'none' : 'flex';
+    ['ingredients','dishes','meals','grocery'].forEach(name =>
+      document.getElementById('view-' + name).classList.toggle('active', v === name));
+    document.getElementById('goals').style.display = (v === 'dishes' || v === 'meals') ? 'flex' : 'none';
     document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.view===v));
     if (v==='dishes') renderDishes();
     if (v==='meals') renderMeals();
+    if (v==='grocery') renderGrocery();
   }
   function setBadge(id, n) {
     const b = document.getElementById(id);
@@ -1152,9 +1334,11 @@
   function updateCounts() {
     setBadge('nav-dish-badge', dishes.filter(d => dishStatus(d).ready).length);
     setBadge('nav-meal-badge', meals.filter(m => mealStatus(m).ready).length);
+    setBadge('nav-grocery-badge', [...grocery].filter(id => ING_BY_ID[id]).length);
     document.getElementById('pantry-count').textContent = `${onHandCount()} on hand`;
     if (currentView === 'dishes') renderDishes();
     if (currentView === 'meals') renderMeals();
+    if (currentView === 'grocery') renderGrocery();
   }
 
   /* =========================================================
@@ -1228,6 +1412,7 @@
       ingredients = ingredients.filter(x => x.id !== id);
       dishes.forEach(d => { if (d.ing) d.ing = d.ing.filter(x => x !== id); });
       delete inv[id]; saveInv();
+      grocery.delete(id); saveGrocery();
       if (persist()) { renderIngredients(); renderDishes(); updateCounts(); closeModal(); }
     };
   }
@@ -1407,6 +1592,10 @@
   document.getElementById('add-item').onclick = () => openIngredientEditor(null);
   document.getElementById('add-dish').onclick = () => openDishEditor(null);
   document.getElementById('build-meal').onclick = () => openMealBuilder(null);
+  const groInput = document.getElementById('grocery-add');
+  const groSubmit = () => { groceryAdd(groInput.value); groInput.value = ''; };
+  document.getElementById('grocery-add-btn').onclick = groSubmit;
+  groInput.addEventListener('keydown', e => { if (e.key === 'Enter') groSubmit(); });
   document.getElementById('restore-defaults').onclick = () => {
     if (!confirm('Restore the original built-in ingredients, dishes and meals?\n\nThis discards anything you’ve added or edited. Your on-hand inventory is kept.')) return;
     seedCatalog();
@@ -1418,6 +1607,7 @@
   renderIngredients();
   renderDishes();
   renderMeals();
+  renderGrocery();
   updateCounts();
   </script>
 </body>
