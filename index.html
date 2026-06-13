@@ -315,6 +315,9 @@
     nav.tabs button .ic { font-size: 1.25rem; }
 
     /* recipe import */
+    .imp-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .imp-tab { flex: 1; border: 1.5px solid var(--line); background: var(--card); color: var(--muted); font-family: inherit; font-weight: 800; font-size: .84rem; padding: 9px; border-radius: 10px; cursor: pointer; }
+    .imp-tab.on { background: var(--accent); border-color: var(--accent); color: #fff; }
     .imp-loading, .imp-ok, .imp-err { font-weight: 700; font-size: .85rem; padding: 10px 0 2px; }
     .imp-ok { color: var(--accent); }
     .imp-err { color: #c0392b; }
@@ -1284,21 +1287,53 @@
     el.innerHTML = `
       <div class="editor">
         <h2>🔗 Import a recipe</h2>
-        <div class="form-field"><label>Recipe URL</label>
-          <input type="text" id="imp-url" placeholder="https://…" autocomplete="off">
-          <div class="hint">Paste a link from most recipe sites. We read the page’s recipe data, match the ingredients to your pantry, and pre-fill a dish for you to review. The link is fetched through a public proxy so your browser can read it.</div>
+        <div class="imp-tabs">
+          <button class="imp-tab on" data-mode="url">From a link</button>
+          <button class="imp-tab" data-mode="paste">Paste text</button>
         </div>
-        <div class="btn-row">
-          <button class="btn-primary" id="imp-fetch">Fetch recipe</button>
-          <button class="btn-cancel" id="imp-cancel">Cancel</button>
-        </div>
+        <div id="imp-body"></div>
         <div id="imp-status"></div>
         <div id="imp-review"></div>
+        <div class="btn-row" style="margin-top:10px"><button class="btn-cancel" id="imp-cancel">Close</button></div>
       </div>`;
     openModalShell();
     el.querySelector('#imp-cancel').onclick = closeModal;
-    el.querySelector('#imp-fetch').onclick = () => doImport(el);
-    el.querySelector('#imp-url').addEventListener('keydown', e => { if (e.key === 'Enter') doImport(el); });
+    const tabs = el.querySelectorAll('.imp-tab');
+    tabs.forEach(t => t.onclick = () => {
+      tabs.forEach(x => x.classList.remove('on')); t.classList.add('on');
+      el.querySelector('#imp-status').innerHTML = ''; el.querySelector('#imp-review').innerHTML = '';
+      renderImportBody(el, t.dataset.mode);
+    });
+    renderImportBody(el, 'url');
+  }
+
+  function renderImportBody(el, mode) {
+    const body = el.querySelector('#imp-body');
+    if (mode === 'url') {
+      body.innerHTML = `
+        <div class="form-field"><label>Recipe URL</label>
+          <input type="text" id="imp-url" placeholder="https://…" autocomplete="off">
+          <div class="hint">Works on most recipe sites. The link is fetched through a public proxy so your browser can read it.</div>
+        </div>
+        <div class="btn-row"><button class="btn-primary" id="imp-fetch">Fetch recipe</button></div>`;
+      body.querySelector('#imp-fetch').onclick = () => doImport(el);
+      body.querySelector('#imp-url').addEventListener('keydown', e => { if (e.key === 'Enter') doImport(el); });
+    } else {
+      body.innerHTML = `
+        <div class="form-field"><label>Dish name</label><input type="text" id="imp-pname" placeholder="e.g. Garlic Lemon Chicken"></div>
+        <div class="form-field"><label>Ingredients (one per line)</label><textarea id="imp-ping" placeholder="2 chicken breasts&#10;1 cup rice&#10;3 cloves garlic, minced"></textarea></div>
+        <div class="form-field"><label>Steps (one per line, optional)</label><textarea id="imp-psteps" placeholder="Sear the chicken&#10;Cook the rice&#10;Combine and serve"></textarea></div>
+        <div class="hint" style="margin-bottom:10px">Paste from anywhere. We’ll match the ingredients to your pantry, then pre-fill a dish to review.</div>
+        <div class="btn-row"><button class="btn-primary" id="imp-parse">Match &amp; review</button></div>`;
+      body.querySelector('#imp-parse').onclick = () => {
+        const name = body.querySelector('#imp-pname').value.trim();
+        const ingLines = body.querySelector('#imp-ping').value.split('\n').map(s => s.trim()).filter(Boolean);
+        const steps = body.querySelector('#imp-psteps').value.split('\n').map(s => s.trim()).filter(Boolean);
+        if (!ingLines.length) { el.querySelector('#imp-status').innerHTML = `<p class="imp-err">Add at least a few ingredients (one per line).</p>`; return; }
+        el.querySelector('#imp-status').innerHTML = `<p class="imp-ok">✓ Ready to review</p>`;
+        showImportReview(el, { name: name || 'Imported dish', img: null, time: 0, servings: 1, steps, ingLines, nutri: { kcal:0, protein:0, sodium:0, fiber:0 } });
+      };
+    }
   }
 
   async function doImport(el) {
