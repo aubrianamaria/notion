@@ -314,6 +314,12 @@
     nav.tabs button { max-width: 120px; font-size: .72rem; padding: 6px 2px; }
     nav.tabs button .ic { font-size: 1.25rem; }
 
+    /* backup / restore */
+    .footer-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 28px; }
+    .footer-actions .btn { font-size: .74rem; }
+    .data-box { width: 100%; min-height: 80px; font-family: ui-monospace, Menlo, monospace; font-size: .72rem; resize: vertical; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
+    .data-hr { border: none; border-top: 1px solid var(--line); margin: 20px 0; }
+
     /* recipe import */
     .imp-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
     .imp-tab { flex: 1; border: 1.5px solid var(--line); background: var(--card); color: var(--muted); font-family: inherit; font-weight: 800; font-size: .84rem; padding: 9px; border-radius: 10px; cursor: pointer; }
@@ -406,8 +412,9 @@
         <span><span class="lvl-dot" style="background:#d9cebd"></span><b>Out</b> → grocery list</span>
       </div>
       <div id="aisles"></div>
-      <div style="text-align:center;margin-top:28px">
-        <button class="btn ghost" id="restore-defaults" style="font-size:.74rem">↩︎ Restore default catalog</button>
+      <div class="footer-actions">
+        <button class="btn ghost" id="data-backup">💾 Backup &amp; restore</button>
+        <button class="btn ghost" id="restore-defaults">↩︎ Restore default catalog</button>
       </div>
     </section>
 
@@ -1488,6 +1495,106 @@
   }
 
   /* =========================================================
+     BACKUP / RESTORE — export & import all data as a file
+     ========================================================= */
+  function exportObject() {
+    return {
+      app: 'pantry-to-plate', schema: 2, exportedAt: new Date().toISOString(),
+      catalog: { ingredients, dishes, meals },
+      inventory: inv, grocery: [...grocery], settings: { assumeStaples },
+    };
+  }
+  function downloadBackup() {
+    const blob = new Blob([JSON.stringify(exportObject(), null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `pantry-plate-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    toast('Backup downloaded ⬇️');
+  }
+  function applyImport(data, mode) {
+    const cat = (data && data.catalog) ? data.catalog : data;
+    if (!cat || !Array.isArray(cat.ingredients) || !Array.isArray(cat.dishes)) throw new Error('bad-backup');
+    if (mode === 'replace') {
+      ingredients = cat.ingredients; dishes = cat.dishes; meals = Array.isArray(cat.meals) ? cat.meals : [];
+      inv = (data.inventory && typeof data.inventory === 'object') ? data.inventory : {};
+      grocery = new Set(Array.isArray(data.grocery) ? data.grocery : []);
+      if (data.settings && typeof data.settings.assumeStaples === 'boolean') assumeStaples = data.settings.assumeStaples;
+    } else { // merge: add anything new, keep what's here
+      const has = (arr, id) => arr.some(x => x.id === id);
+      cat.ingredients.forEach(i => { if (!has(ingredients, i.id)) ingredients.push(i); });
+      cat.dishes.forEach(d => { if (!has(dishes, d.id)) dishes.push(d); });
+      (cat.meals || []).forEach(m => { if (!has(meals, m.id)) meals.push(m); });
+      if (data.inventory) Object.assign(inv, data.inventory);
+      (data.grocery || []).forEach(id => grocery.add(id));
+    }
+    reindex();
+    if (!persist()) return false;
+    saveInv(); saveGrocery(); save();
+    return true;
+  }
+  function renderAll() {
+    document.getElementById('staples-toggle').checked = assumeStaples;
+    renderHome(); renderIngredients(); renderDishes(); renderMeals(); renderGrocery(); updateCounts();
+  }
+
+  function openDataModal() {
+    const el = document.getElementById('modal');
+    el.innerHTML = `
+      <div class="editor">
+        <h2>💾 Backup &amp; restore</h2>
+        <p class="view-note">Your data lives in this browser. Export it to back up or move it to another device, then Import there.</p>
+        <div class="form-field">
+          <label>Your backup</label>
+          <textarea id="data-out" class="data-box" readonly>${esc(JSON.stringify(exportObject()))}</textarea>
+          <div class="btn-row" style="margin-top:8px">
+            <button class="btn" id="data-copy">📋 Copy</button>
+            <button class="btn" id="data-download">⬇️ Download file</button>
+          </div>
+        </div>
+        <hr class="data-hr">
+        <div class="form-field">
+          <label>Restore from a backup</label>
+          <input type="file" id="data-file" accept="application/json,.json" style="margin-bottom:8px">
+          <textarea id="data-in" class="data-box" placeholder="…or paste a backup here"></textarea>
+          <div class="hint"><b>Replace</b> swaps in the backup. <b>Merge</b> adds anything new and keeps what you already have.</div>
+          <div class="btn-row">
+            <button class="btn-primary" id="data-replace">Replace all</button>
+            <button class="btn" id="data-merge">Merge</button>
+          </div>
+        </div>
+        <div class="btn-row"><button class="btn-cancel" id="data-close">Close</button></div>
+      </div>`;
+    openModalShell();
+    el.querySelector('#data-close').onclick = closeModal;
+    el.querySelector('#data-copy').onclick = () => {
+      const txt = el.querySelector('#data-out').value;
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(() => toast('Copied 📋'), () => toast('Copy failed — select & copy manually'));
+      else { el.querySelector('#data-out').select(); toast('Select all & copy'); }
+    };
+    el.querySelector('#data-download').onclick = downloadBackup;
+    const inBox = el.querySelector('#data-in');
+    el.querySelector('#data-file').onchange = (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = ev => { inBox.value = ev.target.result; toast('File loaded — choose Replace or Merge'); };
+      r.readAsText(f);
+    };
+    const run = (mode) => {
+      const txt = inBox.value.trim();
+      if (!txt) { toast('Choose a file or paste a backup first'); return; }
+      let data; try { data = JSON.parse(txt); } catch (e) { alert('That doesn’t look like valid backup text.'); return; }
+      if (mode === 'replace' && !confirm('Replace ALL your current data with this backup? (Export first if unsure.)')) return;
+      try {
+        if (applyImport(data, mode)) { closeModal(); renderAll(); switchView('home'); toast(mode === 'replace' ? 'Restored ✓' : 'Merged ✓'); }
+      } catch (e) { alert('Couldn’t read that backup — it may be from a different app or corrupted.'); }
+    };
+    el.querySelector('#data-replace').onclick = () => run('replace');
+    el.querySelector('#data-merge').onclick = () => run('merge');
+  }
+
+  /* =========================================================
      RENDER — home / landing
      ========================================================= */
   function greeting() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; }
@@ -1964,6 +2071,7 @@
   const groSubmit = () => { groceryAdd(groInput.value); groInput.value = ''; };
   document.getElementById('grocery-add-btn').onclick = groSubmit;
   groInput.addEventListener('keydown', e => { if (e.key === 'Enter') groSubmit(); });
+  document.getElementById('data-backup').onclick = () => openDataModal();
   document.getElementById('restore-defaults').onclick = () => {
     if (!confirm('Restore the original built-in ingredients, dishes and meals?\n\nThis discards anything you’ve added or edited. Your on-hand inventory is kept.')) return;
     seedCatalog();
