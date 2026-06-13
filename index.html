@@ -923,6 +923,16 @@
   function aisleClass(aisleId) { return 'g-' + aisleId; }
   function typeClass(type) { return 't-' + type; }
 
+  // Built-in images, baked into the code so they show on EVERY device (not just
+  // the browser they were added in). Map an item/dish/meal id to an image URL —
+  // either a repo-relative path like 'images/banana.jpg' (served by GitHub Pages)
+  // or any public https URL. A per-item photo set in the app still overrides this.
+  const DEFAULT_IMAGES = {
+    // banana: 'images/banana.jpg',
+    // roastchicken: 'https://…/chicken.jpg',
+  };
+  function imgFor(o) { return (o && o.img) || (o && DEFAULT_IMAGES[o.id]) || null; }
+
   // an ingredient counts as "on hand" if stocked, or if it's a staple and the toggle is on
   function hasItem(id) {
     if (onHand(id)) return true;
@@ -1017,7 +1027,7 @@
     const card = document.createElement('div');
     const lvl = levelOf(i.id);
     card.className = 'item lvl-' + lvl;
-    const ph = i.img ? `<img class="ph" src="${esc(i.img)}" alt="" onerror="this.style.display='none'">` : '';
+    const ph = imgFor(i) ? `<img class="ph" src="${esc(imgFor(i))}" alt="" onerror="this.style.display='none'">` : '';
     card.innerHTML = `
       <div class="thumb ${aisleClass(i.aisle)}">
         <span class="fallback">${i.emoji || '🛒'}</span>
@@ -1082,7 +1092,7 @@
     if (s.total === 0) ingText = `<span class="miss">No ingredients set — tap to edit</span>`;
     else if (s.ready) ingText = `<span class="allset">You have everything ✨</span>`;
     else ingText = `Just need <span class="miss">${s.missing.map(id => esc(ING_BY_ID[id].name)).join(', ')}</span>`;
-    const ph = d.img ? `<img class="ph" src="${esc(d.img)}" alt="" onerror="this.style.display='none'">` : '';
+    const ph = imgFor(d) ? `<img class="ph" src="${esc(imgFor(d))}" alt="" onerror="this.style.display='none'">` : '';
     card.innerHTML = `
       <div class="photo ${typeClass(d.type)}">
         <div class="fallback">${d.emoji || '🍽️'}</div>
@@ -1133,7 +1143,7 @@
     card.className = 'meal';
     const { tag, cls } = readyTag(s);
     const fallback = m.emoji || ds.map(d => d.emoji || '🍽️').slice(0,3).join('') || '🍽️';
-    const ph = m.img ? `<img class="ph" src="${esc(m.img)}" alt="" onerror="this.style.display='none'">` : '';
+    const ph = imgFor(m) ? `<img class="ph" src="${esc(imgFor(m))}" alt="" onerror="this.style.display='none'">` : '';
     const dishNames = ds.length ? ds.map(d => esc(d.name)).join(' · ') : 'No dishes yet — tap to edit';
     card.innerHTML = `
       <div class="photo t-meal">
@@ -1170,7 +1180,7 @@
     const s = dishStatus(d);
     const el = document.getElementById('modal');
     const ingItems = (d.ing||[]).filter(x => ING_BY_ID[x]).map(ingLI).join('') || '<li class="need"><span class="dot"></span>No ingredients set yet</li>';
-    const ph = d.img ? `<img class="ph" src="${esc(d.img)}" alt="">` : '';
+    const ph = imgFor(d) ? `<img class="ph" src="${esc(imgFor(d))}" alt="">` : '';
     el.innerHTML = `
       <div class="hero ${typeClass(d.type)}">
         <div class="fallback">${d.emoji || '🍽️'}</div>
@@ -1226,7 +1236,7 @@
     const ds = mealDishes(m), meta = mealMeta(m), s = mealStatus(m);
     const el = document.getElementById('modal');
     const fallback = m.emoji || ds.map(d=>d.emoji||'🍽️').slice(0,3).join('') || '🍽️';
-    const ph = m.img ? `<img class="ph" src="${esc(m.img)}" alt="">` : '';
+    const ph = imgFor(m) ? `<img class="ph" src="${esc(imgFor(m))}" alt="">` : '';
     const dishRows = ds.length ? ds.map(d => {
       const s2 = dishStatus(d);
       return `<li class="dish-row" data-d="${d.id}"><span class="d-emoji">${d.emoji||'🍽️'}</span>
@@ -1521,7 +1531,7 @@
     if (pick) {
       const v = pickVisual(pick);
       const { tag, cls } = readyTag(v.status);
-      const ph = pick.item.img ? `<img class="ph" src="${esc(pick.item.img)}" alt="">` : '';
+      const ph = imgFor(pick.item) ? `<img class="ph" src="${esc(imgFor(pick.item))}" alt="">` : '';
       heroHTML = `
         <div class="home-hero ${v.grad}" id="hero-card">
           <div class="hero-bg">${ph}<span class="hero-emoji">${v.fallback}</span></div>
@@ -1540,7 +1550,7 @@
       stripHTML = `<h3 class="home-h">Ready to cook now</h3><div class="ready-strip">` +
         ready.slice(0, 12).map(r => {
           const v = pickVisual(r);
-          const ph = r.item.img ? `<img class="ph" src="${esc(r.item.img)}" alt="">` : '';
+          const ph = imgFor(r.item) ? `<img class="ph" src="${esc(imgFor(r.item))}" alt="">` : '';
           return `<div class="strip-card" data-kind="${r.kind}" data-id="${r.item.id}">
             <div class="strip-photo ${v.grad}">${ph}<span>${v.fallback}</span></div>
             <div class="strip-name">${esc(r.item.name)}</div></div>`;
@@ -1722,7 +1732,7 @@
   function openIngredientEditor(id) {
     const editing = id != null;
     const it = editing ? ING_BY_ID[id] : { name:'', aisle:'produce', emoji:'🥕', img:null, staple:false };
-    pendingImg = it.img || null;
+    pendingImg = imgFor(it) || null;
     const aisleOpts = AISLES.map(a => `<option value="${a.id}" ${a.id===it.aisle?'selected':''}>${a.emoji} ${a.name}</option>`).join('');
     const el = document.getElementById('modal');
     el.innerHTML = `
@@ -1778,7 +1788,7 @@
     const editing = id != null;
     const base = { name:'', type:'dinner', time:20, servings:2, emoji:'🍽️', img:null, ing:[], nutri:{kcal:0,protein:0,sodium:0,fiber:0}, veg:false, baby:{ok:false,note:''}, steps:[] };
     const d = editing ? DISH_BY_ID[id] : Object.assign(base, prefill || {});
-    pendingImg = d.img || null;
+    pendingImg = imgFor(d) || null;
     const typeOpts = ['breakfast','lunch','dinner','side','snack'].map(t => `<option ${t===d.type?'selected':''}>${t}</option>`).join('');
     const chosen = new Set(d.ing || []);
     const picker = AISLES.map(a => {
@@ -1875,7 +1885,7 @@
   function openMealBuilder(id) {
     const editing = id != null;
     const m = editing ? meals.find(x => x.id === id) : { name:'', emoji:'', img:null, dishIds:[] };
-    pendingImg = m.img || null;
+    pendingImg = imgFor(m) || null;
     const chosen = new Set(m.dishIds || []);
     const order = ['breakfast','lunch','dinner','side','snack'];
     const byType = {};
