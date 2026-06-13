@@ -309,8 +309,40 @@
     .toast { position: fixed; bottom: 96px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 999px; font-weight: 800; font-size: .85rem; z-index: 200; opacity: 0; transition: opacity .25s; pointer-events: none; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
     .toast.show { opacity: 1; }
 
-    /* 4-tab nav sizing */
-    nav.tabs button { max-width: 150px; }
+    /* nav sizing for 5 tabs */
+    nav.tabs { gap: 2px; }
+    nav.tabs button { max-width: 120px; font-size: .72rem; padding: 6px 2px; }
+    nav.tabs button .ic { font-size: 1.25rem; }
+
+    /* home / landing */
+    .home-greet h1 { margin: 0; font-size: 1.6rem; }
+    .home-greet p { margin: 2px 0 18px; color: var(--muted); font-weight: 700; }
+    .home-hero { position: relative; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); cursor: pointer; min-height: 210px; display: flex; align-items: flex-end; transition: .15s; }
+    .home-hero:hover { transform: translateY(-2px); }
+    .home-hero .hero-bg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+    .home-hero .hero-bg .ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .home-hero .hero-emoji { font-size: 5rem; filter: drop-shadow(0 4px 7px rgba(80,50,20,.28)); }
+    .home-hero .hero-info { position: relative; width: 100%; padding: 18px 20px 20px; background: linear-gradient(to top, rgba(35,25,12,.62), rgba(35,25,12,.06) 70%, transparent); color: #fff; }
+    .home-hero .hero-info h2 { margin: 3px 0 9px; color: #fff; font-size: 1.5rem; line-height: 1.15; }
+    .home-hero .eyebrow { font-weight: 800; font-size: .73rem; text-transform: uppercase; letter-spacing: .05em; opacity: .96; }
+    .home-hero .nutri .badge { background: rgba(255,255,255,.22); color: #fff; }
+    .home-hero .nutri .badge.good { background: rgba(255,255,255,.34); color: #fff; }
+    .ready-tag.static { position: static; display: inline-block; margin-top: 10px; box-shadow: none; }
+    .home-shuffle { text-align: center; margin: 14px 0 4px; }
+    .home-h { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.08rem; margin: 26px 0 12px; }
+    .ready-strip { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+    .ready-strip::-webkit-scrollbar { display: none; }
+    .strip-card { flex: 0 0 auto; width: 122px; cursor: pointer; }
+    .strip-card:hover { transform: translateY(-2px); }
+    .strip-photo { position: relative; width: 122px; height: 84px; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; box-shadow: var(--shadow); }
+    .strip-photo .ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .strip-name { font-weight: 700; font-size: .8rem; margin-top: 6px; line-height: 1.25; }
+    .home-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .tile { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; background: var(--card); border: 1.5px solid var(--line); border-radius: 14px; padding: 15px; cursor: pointer; font-family: inherit; text-align: left; transition: .15s; }
+    .tile:hover { border-color: #d9cebd; box-shadow: var(--shadow); transform: translateY(-2px); }
+    .tile .t-ic { font-size: 1.6rem; margin-bottom: 4px; }
+    .tile b { font-family: 'Fraunces', Georgia, serif; font-size: 1.5rem; }
+    .tile span:last-child { color: var(--muted); font-weight: 700; font-size: .76rem; }
   </style>
 </head>
 <body>
@@ -325,6 +357,11 @@
   </header>
 
   <main>
+    <!-- HOME VIEW -->
+    <section class="view active" id="view-home">
+      <div id="home-body"></div>
+    </section>
+
     <!-- INGREDIENTS VIEW -->
     <section class="view" id="view-ingredients">
       <div class="view-head">
@@ -391,7 +428,8 @@
   </main>
 
   <nav class="tabs">
-    <button data-view="ingredients" class="on"><span class="ic">🧺</span>Pantry</button>
+    <button data-view="home" class="on"><span class="ic">🏠</span>Home</button>
+    <button data-view="ingredients"><span class="ic">🧺</span>Pantry</button>
     <button data-view="dishes"><span class="ic">🍳</span><span>Dishes <span class="nav-badge" id="nav-dish-badge" style="display:none">0</span></span></button>
     <button data-view="meals"><span class="ic">🍽️</span><span>Meals <span class="nav-badge" id="nav-meal-badge" style="display:none">0</span></span></button>
     <button data-view="grocery"><span class="ic">🛒</span><span>List <span class="nav-badge" id="nav-grocery-badge" style="display:none">0</span></span></button>
@@ -1219,6 +1257,101 @@
   });
 
   /* =========================================================
+     RENDER — home / landing
+     ========================================================= */
+  function greeting() { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'; }
+  function daySeed() { const d = new Date(); return d.getFullYear()*372 + (d.getMonth()+1)*31 + d.getDate(); }
+  function readyList() {
+    return [
+      ...meals.filter(m => mealDishes(m).length && mealStatus(m).ready).map(m => ({ kind:'meal', item:m })),
+      ...dishes.filter(d => (d.ing||[]).length && dishStatus(d).ready).map(d => ({ kind:'dish', item:d })),
+    ];
+  }
+  function pickOfDay() {
+    const ready = readyList();
+    let pool = ready.length ? ready
+      : meals.filter(m => mealDishes(m).length).map(m => ({ kind:'meal', item:m }));
+    if (!pool.length) pool = dishes.map(d => ({ kind:'dish', item:d }));
+    return pool.length ? pool[daySeed() % pool.length] : null;
+  }
+  function randomPick() {
+    const all = [...meals.filter(m => mealDishes(m).length).map(m => ({ kind:'meal', item:m })), ...dishes.map(d => ({ kind:'dish', item:d }))];
+    return all.length ? all[Math.floor(Math.random() * all.length)] : null;
+  }
+  function openPick(p) { if (!p) return; (p.kind === 'meal' ? openMealModal : openDishModal)(p.item.id); }
+
+  function pickVisual(p) { // → { grad, fallback, nutri, status, eyebrow }
+    const it = p.item, isMeal = p.kind === 'meal';
+    const ds = isMeal ? mealDishes(it) : null;
+    return {
+      grad: isMeal ? 't-meal' : typeClass(it.type),
+      fallback: it.emoji || (isMeal ? ds.map(d => d.emoji || '🍽️').slice(0,3).join('') : '🍽️') || '🍽️',
+      nutri: isMeal ? mealMeta(it).nutri : it.nutri,
+      status: isMeal ? mealStatus(it) : dishStatus(it),
+      eyebrow: isMeal ? '🍽️ Meal of the day' : '🍳 Dish of the day',
+    };
+  }
+
+  function renderHome() {
+    const body = document.getElementById('home-body');
+    const dateStr = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+    const pick = pickOfDay();
+    let heroHTML = `<div class="empty"><div class="big">🍽️</div><h3>Add a dish to get started</h3><p>Your daily pick will show up here.</p></div>`;
+    if (pick) {
+      const v = pickVisual(pick);
+      const { tag, cls } = readyTag(v.status);
+      const ph = pick.item.img ? `<img class="ph" src="${esc(pick.item.img)}" alt="">` : '';
+      heroHTML = `
+        <div class="home-hero ${v.grad}" id="hero-card">
+          <div class="hero-bg">${ph}<span class="hero-emoji">${v.fallback}</span></div>
+          <div class="hero-info">
+            <div class="eyebrow">${v.eyebrow}</div>
+            <h2>${esc(pick.item.name)}</h2>
+            <div class="nutri">${badges(v.nutri)}</div>
+            <span class="ready-tag ${cls} static">${tag}</span>
+          </div>
+        </div>`;
+    }
+
+    const ready = readyList();
+    let stripHTML = '';
+    if (ready.length) {
+      stripHTML = `<h3 class="home-h">Ready to cook now</h3><div class="ready-strip">` +
+        ready.slice(0, 12).map(r => {
+          const v = pickVisual(r);
+          const ph = r.item.img ? `<img class="ph" src="${esc(r.item.img)}" alt="">` : '';
+          return `<div class="strip-card" data-kind="${r.kind}" data-id="${r.item.id}">
+            <div class="strip-photo ${v.grad}">${ph}<span>${v.fallback}</span></div>
+            <div class="strip-name">${esc(r.item.name)}</div></div>`;
+        }).join('') + `</div>`;
+    }
+
+    const tiles = `
+      <h3 class="home-h">Jump in</h3>
+      <div class="home-tiles">
+        <button class="tile" data-go="ingredients"><span class="t-ic">🧺</span><b>${onHandCount()}</b><span>ingredients on hand</span></button>
+        <button class="tile" data-go="dishes"><span class="t-ic">🍳</span><b>${dishes.filter(d => dishStatus(d).ready).length}</b><span>dishes ready</span></button>
+        <button class="tile" data-go="meals"><span class="t-ic">🍽️</span><b>${meals.filter(m => mealStatus(m).ready).length}</b><span>meals ready</span></button>
+        <button class="tile" data-go="grocery"><span class="t-ic">🛒</span><b>${[...grocery].filter(id => ING_BY_ID[id]).length}</b><span>on the list</span></button>
+      </div>`;
+
+    body.innerHTML = `
+      <div class="home-greet"><h1>${greeting()} 👋</h1><p>${dateStr}</p></div>
+      ${heroHTML}
+      <div class="home-shuffle"><button class="btn" id="surprise">🎲 Surprise me</button></div>
+      ${stripHTML}
+      ${tiles}`;
+
+    const hero = document.getElementById('hero-card');
+    if (hero) hero.onclick = () => openPick(pick);
+    const surprise = document.getElementById('surprise');
+    if (surprise) surprise.onclick = () => openPick(randomPick());
+    body.querySelectorAll('.strip-card').forEach(c => c.onclick = () =>
+      (c.dataset.kind === 'meal' ? openMealModal : openDishModal)(c.dataset.id));
+    body.querySelectorAll('.tile').forEach(t => t.onclick = () => switchView(t.dataset.go));
+  }
+
+  /* =========================================================
      RENDER — grocery list
      ========================================================= */
   function renderGrocery() {
@@ -1319,10 +1452,12 @@
      ========================================================= */
   function switchView(v) {
     currentView = v;
-    ['ingredients','dishes','meals','grocery'].forEach(name =>
+    ['home','ingredients','dishes','meals','grocery'].forEach(name =>
       document.getElementById('view-' + name).classList.toggle('active', v === name));
     document.getElementById('goals').style.display = (v === 'dishes' || v === 'meals') ? 'flex' : 'none';
     document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.view===v));
+    window.scrollTo(0, 0);
+    if (v==='home') renderHome();
     if (v==='dishes') renderDishes();
     if (v==='meals') renderMeals();
     if (v==='grocery') renderGrocery();
@@ -1336,6 +1471,7 @@
     setBadge('nav-meal-badge', meals.filter(m => mealStatus(m).ready).length);
     setBadge('nav-grocery-badge', [...grocery].filter(id => ING_BY_ID[id]).length);
     document.getElementById('pantry-count').textContent = `${onHandCount()} on hand`;
+    if (currentView === 'home') renderHome();
     if (currentView === 'dishes') renderDishes();
     if (currentView === 'meals') renderMeals();
     if (currentView === 'grocery') renderGrocery();
@@ -1602,13 +1738,13 @@
     if (persist()) { renderIngredients(); renderDishes(); renderMeals(); updateCounts(); }
   };
 
-  switchView('ingredients');
   renderGoals();
   renderIngredients();
   renderDishes();
   renderMeals();
   renderGrocery();
   updateCounts();
+  switchView('home');
   </script>
 </body>
 </html>
