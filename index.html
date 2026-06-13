@@ -413,6 +413,7 @@
       </div>
       <div id="aisles"></div>
       <div class="footer-actions">
+        <button class="btn ghost" id="add-builtins">✨ Add new built-ins</button>
         <button class="btn ghost" id="data-backup">💾 Backup &amp; restore</button>
         <button class="btn ghost" id="restore-defaults">↩︎ Restore default catalog</button>
       </div>
@@ -560,6 +561,53 @@
     { id:'cumin', name:'Cumin', aisle:'spice', emoji:'🟤', kw:'cumin', staple:true },
     { id:'basil', name:'Basil', aisle:'spice', emoji:'🌿', kw:'basil', staple:true },
     { id:'gingerroot', name:'Ginger', aisle:'spice', emoji:'🫚', kw:'ginger', staple:true },
+    // ——— library expansion ———
+    { id:'greenbeans', name:'Green Beans', aisle:'produce', emoji:'🫛' },
+    { id:'asparagus', name:'Asparagus', aisle:'produce', emoji:'🥬' },
+    { id:'kale', name:'Kale', aisle:'produce', emoji:'🥬' },
+    { id:'cauliflower', name:'Cauliflower', aisle:'produce', emoji:'🥦' },
+    { id:'celery', name:'Celery', aisle:'produce', emoji:'🥬' },
+    { id:'scallion', name:'Green Onion', aisle:'produce', emoji:'🧅' },
+    { id:'cabbage', name:'Cabbage', aisle:'produce', emoji:'🥬' },
+    { id:'squash', name:'Butternut Squash', aisle:'produce', emoji:'🎃' },
+    { id:'pear', name:'Pear', aisle:'produce', emoji:'🍐' },
+    { id:'orange', name:'Orange', aisle:'produce', emoji:'🍊' },
+    { id:'grapes', name:'Grapes', aisle:'produce', emoji:'🍇' },
+    { id:'mango', name:'Mango', aisle:'produce', emoji:'🥭' },
+    { id:'pineapple', name:'Pineapple', aisle:'produce', emoji:'🍍' },
+    { id:'pork', name:'Pork Chops', aisle:'protein', emoji:'🥩' },
+    { id:'groundchicken', name:'Ground Chicken', aisle:'protein', emoji:'🍗' },
+    { id:'bacon', name:'Bacon', aisle:'protein', emoji:'🥓' },
+    { id:'sausage', name:'Sausage', aisle:'protein', emoji:'🌭' },
+    { id:'edamame', name:'Edamame', aisle:'protein', emoji:'🫛' },
+    { id:'ham', name:'Ham', aisle:'protein', emoji:'🍖' },
+    { id:'kidneybeans', name:'Kidney Beans', aisle:'protein', emoji:'🫘' },
+    { id:'whitebeans', name:'White Beans', aisle:'protein', emoji:'🫘' },
+    { id:'sourcream', name:'Sour Cream', aisle:'dairy', emoji:'🥛' },
+    { id:'feta', name:'Feta', aisle:'dairy', emoji:'🧀' },
+    { id:'cottage', name:'Cottage Cheese', aisle:'dairy', emoji:'🧀' },
+    { id:'ricotta', name:'Ricotta', aisle:'dairy', emoji:'🧀' },
+    { id:'englishmuffin', name:'English Muffin', aisle:'grain', emoji:'🥯' },
+    { id:'naan', name:'Naan', aisle:'grain', emoji:'🫓' },
+    { id:'eggnoodles', name:'Egg Noodles', aisle:'grain', emoji:'🍜' },
+    { id:'breadcrumbs', name:'Breadcrumbs', aisle:'grain', emoji:'🍞' },
+    { id:'pita', name:'Pita', aisle:'grain', emoji:'🫓' },
+    { id:'tomatopaste', name:'Tomato Paste', aisle:'pantry', emoji:'🥫' },
+    { id:'ketchup', name:'Ketchup', aisle:'pantry', emoji:'🍅' },
+    { id:'mustard', name:'Mustard', aisle:'pantry', emoji:'🌭' },
+    { id:'mayo', name:'Mayonnaise', aisle:'pantry', emoji:'🥚' },
+    { id:'salsa', name:'Salsa', aisle:'pantry', emoji:'🥫' },
+    { id:'vinegar', name:'Vinegar', aisle:'pantry', emoji:'🍶', staple:true },
+    { id:'sesameoil', name:'Sesame Oil', aisle:'pantry', emoji:'🫗', staple:true },
+    { id:'brownsugar', name:'Brown Sugar', aisle:'pantry', emoji:'🟤', staple:true },
+    { id:'raisins', name:'Raisins', aisle:'pantry', emoji:'🍇' },
+    { id:'almonds', name:'Almonds', aisle:'pantry', emoji:'🌰' },
+    { id:'oregano', name:'Oregano', aisle:'spice', emoji:'🌿', staple:true },
+    { id:'thyme', name:'Thyme', aisle:'spice', emoji:'🌿', staple:true },
+    { id:'rosemary', name:'Rosemary', aisle:'spice', emoji:'🌿', staple:true },
+    { id:'chilipowder', name:'Chili Powder', aisle:'spice', emoji:'🌶️', staple:true },
+    { id:'currypowder', name:'Curry Powder', aisle:'spice', emoji:'🍛', staple:true },
+    { id:'turmeric', name:'Turmeric', aisle:'spice', emoji:'🟡', staple:true },
   ];
 
   /* =========================================================
@@ -803,6 +851,126 @@
       nutri:{ kcal:130, protein:2, sodium:40, fiber:4 }, veg:true,
       baby:{ ok:true, note:'Roast until very soft; mash into smooth bites for baby.' },
       steps:['Cube sweet potato and toss with olive oil.','Roast at 425°F for ~25 min until soft.']
+    },
+    // ——— library expansion ———
+    {
+      id:'omelette', name:'Veggie Omelette', type:'breakfast', time:12, servings:1, emoji:'🍳',
+      ing:['eggs','cheddar','bellpepper','onion','butter'],
+      nutri:{ kcal:320, protein:22, sodium:420, fiber:2 }, veg:true,
+      baby:{ ok:true, note:'Cook through and cut into soft strips; go light on cheese for salt.' },
+      steps:['Sauté diced pepper and onion in butter.','Pour in beaten eggs, cook gently.','Add cheese and fold over.']
+    },
+    {
+      id:'pancakes', name:'Fluffy Pancakes', type:'breakfast', time:20, servings:4, emoji:'🥞',
+      ing:['flour','milk','eggs','butter','maple'],
+      nutri:{ kcal:350, protein:9, sodium:480, fiber:2 }, veg:true,
+      baby:{ ok:true, note:'Serve plain strips for baby — skip the syrup (not needed and messy).' },
+      steps:['Whisk flour, milk and eggs into a batter.','Cook in butter until bubbly, then flip.','Serve with maple syrup.']
+    },
+    {
+      id:'cottagefruit', name:'Cottage Cheese & Fruit', type:'breakfast', time:5, servings:1, emoji:'🍓',
+      ing:['cottage','berries','banana'],
+      nutri:{ kcal:220, protein:18, sodium:380, fiber:3 }, veg:true,
+      baby:{ ok:true, note:'High-protein and soft; mash the fruit and quarter any berries.' },
+      steps:['Spoon cottage cheese into a bowl.','Top with berries and banana.']
+    },
+    {
+      id:'hamwrap', name:'Ham & Cheese Wrap', type:'lunch', time:8, servings:1, emoji:'🌯',
+      ing:['tortilla','ham','cheddar','lettuce','mustard'],
+      nutri:{ kcal:380, protein:22, sodium:900, fiber:3 },
+      baby:{ ok:false, note:'' },
+      steps:['Layer ham, cheese and lettuce on a tortilla.','Add a little mustard and roll up.']
+    },
+    {
+      id:'greeksalad', name:'Greek Salad', type:'lunch', time:12, servings:3, emoji:'🥗',
+      ing:['cucumber','tomato','feta','oliveoil','lemon','onion'],
+      nutri:{ kcal:210, protein:6, sodium:450, fiber:3 }, veg:true,
+      baby:{ ok:false, note:'' },
+      steps:['Chop cucumber, tomato and onion.','Add crumbled feta.','Dress with olive oil and lemon.']
+    },
+    {
+      id:'spaghettimeatballs', name:'Spaghetti & Meatballs', type:'dinner', time:35, servings:4, emoji:'🍝',
+      ing:['pasta','beef','pastasauce','breadcrumbs','parmesan','garlic'],
+      nutri:{ kcal:520, protein:28, sodium:700, fiber:5 },
+      baby:{ ok:true, note:'Mash or quarter the meatballs and cut the pasta short so it’s easy to gum.' },
+      steps:['Mix beef with breadcrumbs and garlic; roll into balls.','Brown, then simmer in sauce.','Serve over pasta with parmesan.']
+    },
+    {
+      id:'bakedcod', name:'Baked Cod & Asparagus', type:'dinner', time:25, servings:3, emoji:'🐟',
+      ing:['whitefish','asparagus','lemon','oliveoil','garlic'],
+      nutri:{ kcal:300, protein:30, sodium:300, fiber:3 },
+      baby:{ ok:true, note:'Flake carefully for bones; steam the asparagus tips until very soft.' },
+      steps:['Place cod and asparagus on a sheet pan.','Drizzle with oil, garlic and lemon.','Bake at 400°F for ~15 min.']
+    },
+    {
+      id:'porkapples', name:'Pork Chops & Apples', type:'dinner', time:30, servings:4, emoji:'🥩',
+      ing:['pork','apple','onion','oliveoil'],
+      nutri:{ kcal:380, protein:32, sodium:320, fiber:3 },
+      baby:{ ok:true, note:'Slice thin or shred; the soft cooked apple is easy to eat.' },
+      steps:['Sear the pork chops, then set aside.','Soften apple and onion in the pan.','Return pork and finish cooking.']
+    },
+    {
+      id:'pineapplefriedrice', name:'Pineapple Fried Rice', type:'dinner', time:20, servings:3, emoji:'🍍',
+      ing:['rice','pineapple','peas','carrot','eggs','soysauce'],
+      nutri:{ kcal:360, protein:12, sodium:520, fiber:4 }, veg:true,
+      baby:{ ok:true, note:'Pull baby’s portion before the soy sauce; keep pieces small and soft.' },
+      steps:['Scramble the eggs, set aside.','Fry rice with peas, carrot and pineapple.','Add the eggs and a splash of soy.']
+    },
+    {
+      id:'chickennoodlesoup', name:'Chicken Noodle Soup', type:'dinner', time:40, servings:6, emoji:'🍜',
+      ing:['chicken','eggnoodles','carrot','celery','onion','broth'],
+      nutri:{ kcal:280, protein:22, sodium:600, fiber:2 },
+      baby:{ ok:true, note:'Cool well, cut the noodles short and shred the chicken finely.' },
+      steps:['Simmer chicken with carrot, celery and onion in broth.','Shred the chicken and return it.','Add noodles and cook until tender.']
+    },
+    {
+      id:'sausagepeppers', name:'Sausage & Peppers', type:'dinner', time:25, servings:4, emoji:'🌭',
+      ing:['sausage','bellpepper','onion','oliveoil'],
+      nutri:{ kcal:380, protein:18, sodium:780, fiber:3 },
+      baby:{ ok:false, note:'' },
+      steps:['Brown the sliced sausage.','Add peppers and onion; cook until soft.']
+    },
+    {
+      id:'blackbeantacos', name:'Black Bean Tacos', type:'dinner', time:20, servings:3, emoji:'🌮',
+      ing:['tortilla','blackbeans','cheddar','salsa','lettuce'],
+      nutri:{ kcal:350, protein:15, sodium:560, fiber:9 }, veg:true,
+      baby:{ ok:true, note:'Mash the beans, skip the salsa for baby, and serve soft tortilla strips.' },
+      steps:['Warm and mash the black beans.','Fill tortillas with beans, cheese, lettuce and salsa.']
+    },
+    {
+      id:'squashsoup', name:'Butternut Squash Soup', type:'dinner', time:35, servings:4, emoji:'🥣',
+      ing:['squash','onion','broth','coconutmilk','garlic'],
+      nutri:{ kcal:240, protein:4, sodium:420, fiber:5 }, veg:true,
+      baby:{ ok:true, note:'Naturally smooth once blended — a perfect purée. Cool before serving.' },
+      steps:['Sauté onion and garlic.','Add squash and broth; simmer until soft.','Blend with coconut milk until smooth.']
+    },
+    {
+      id:'mashedpotatoes', name:'Garlic Mashed Potatoes', type:'side', time:25, servings:4, emoji:'🥔',
+      ing:['potato','butter','milk','garlic'],
+      nutri:{ kcal:200, protein:4, sodium:180, fiber:3 }, veg:true,
+      baby:{ ok:true, note:'Soft and smooth — a great early finger-or-spoon food.' },
+      steps:['Boil potatoes until tender.','Mash with butter, milk and garlic.']
+    },
+    {
+      id:'roastedveggies', name:'Roasted Vegetables', type:'side', time:30, servings:4, emoji:'🥕',
+      ing:['carrot','zucchini','bellpepper','oliveoil'],
+      nutri:{ kcal:110, protein:2, sodium:60, fiber:4 }, veg:true,
+      baby:{ ok:true, note:'Roast until soft and cut into small pieces.' },
+      steps:['Chop the veggies and toss with olive oil.','Roast at 425°F for ~22 min.']
+    },
+    {
+      id:'applepb', name:'Apple & Peanut Butter', type:'snack', time:3, servings:1, emoji:'🍎',
+      ing:['apple','peanutbutter'],
+      nutri:{ kcal:200, protein:7, sodium:120, fiber:4 }, veg:true,
+      baby:{ ok:true, note:'Spread the peanut butter thin and serve thin, soft apple slices to avoid choking.' },
+      steps:['Slice the apple.','Serve with peanut butter to dip.']
+    },
+    {
+      id:'trailmix', name:'Trail Mix', type:'snack', time:2, servings:4, emoji:'🥜',
+      ing:['almonds','raisins'],
+      nutri:{ kcal:180, protein:5, sodium:5, fiber:3 }, veg:true,
+      baby:{ ok:false, note:'' },
+      steps:['Mix the almonds and raisins.']
     },
   ];
 
@@ -1539,6 +1707,18 @@
     renderHome(); renderIngredients(); renderDishes(); renderMeals(); renderGrocery(); updateCounts();
   }
 
+  // pull in any built-in ingredients/dishes/meals you don't have yet, without
+  // touching your own edits — used when the built-in library grows.
+  function addNewBuiltins() {
+    const has = (arr, id) => arr.some(x => x.id === id);
+    let n = 0;
+    DEFAULT_INGREDIENTS.forEach(i => { if (!has(ingredients, i.id)) { ingredients.push(clone(i)); n++; } });
+    DEFAULT_DISHES.forEach(d => { if (!has(dishes, d.id)) { dishes.push(clone(d)); n++; } });
+    DEFAULT_MEALS.forEach(m => { if (!has(meals, m.id)) { meals.push(clone(m)); n++; } });
+    if (n) { reindex(); if (!persist()) return; renderAll(); }
+    toast(n ? `Added ${n} new built-in item${n!==1?'s':''} ✨` : 'Already up to date 👍');
+  }
+
   function openDataModal() {
     const el = document.getElementById('modal');
     el.innerHTML = `
@@ -2071,6 +2251,7 @@
   const groSubmit = () => { groceryAdd(groInput.value); groInput.value = ''; };
   document.getElementById('grocery-add-btn').onclick = groSubmit;
   groInput.addEventListener('keydown', e => { if (e.key === 'Enter') groSubmit(); });
+  document.getElementById('add-builtins').onclick = () => addNewBuiltins();
   document.getElementById('data-backup').onclick = () => openDataModal();
   document.getElementById('restore-defaults').onclick = () => {
     if (!confirm('Restore the original built-in ingredients, dishes and meals?\n\nThis discards anything you’ve added or edited. Your on-hand inventory is kept.')) return;
