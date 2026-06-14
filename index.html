@@ -320,6 +320,13 @@
     .data-box { width: 100%; min-height: 80px; font-family: ui-monospace, Menlo, monospace; font-size: .72rem; resize: vertical; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
     .data-hr { border: none; border-top: 1px solid var(--line); margin: 20px 0; }
 
+    /* quick / voice add */
+    .qa-ta { min-height: 130px; }
+    .qa-newrow { display: flex; gap: 8px; margin-top: 6px; }
+    .qa-newrow .imp-newname { flex: 1; }
+    .qa-aisle { flex: 0 0 auto; max-width: 140px; padding: 7px 8px; border: 1.5px solid var(--line); border-radius: 8px; font: inherit; background: var(--card); color: var(--ink); }
+    .btn.on { background: var(--baby); border-color: var(--baby); color: #fff; }
+
     /* recipe import */
     .imp-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
     .imp-tab { flex: 1; border: 1.5px solid var(--line); background: var(--card); color: var(--muted); font-family: inherit; font-weight: 800; font-size: .84rem; padding: 9px; border-radius: 10px; cursor: pointer; }
@@ -424,6 +431,7 @@
           🔍 <input id="item-search" placeholder="Search ingredients…" autocomplete="off" />
         </label>
         <button class="btn" id="add-item">➕ Add</button>
+        <button class="btn" id="quick-add">🎤 Quick add</button>
         <button class="btn ghost" id="clear-pantry">Clear</button>
       </div>
       <div class="staple-row">
@@ -1484,6 +1492,7 @@
     document.body.style.overflow = 'hidden';
   }
   function closeModal() {
+    if (typeof stopDictation === 'function') stopDictation();
     document.getElementById('modal-bg').classList.remove('open');
     document.body.style.overflow = '';
   }
@@ -1800,6 +1809,108 @@
     };
     el.querySelector('#data-replace').onclick = () => run('replace');
     el.querySelector('#data-merge').onclick = () => run('merge');
+  }
+
+  /* =========================================================
+     QUICK ADD — bulk / voice entry into the pantry
+     ========================================================= */
+  let qaRecog = null, qaListening = false;
+  function stopDictation() { if (qaRecog) { try { qaRecog.stop(); } catch (e) {} qaRecog = null; } qaListening = false; }
+  function toggleDictation(btn, ta) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { toast('Use your keyboard’s 🎤 mic to dictate'); return; }
+    if (qaListening) { stopDictation(); btn.classList.remove('on'); btn.textContent = '🎤 Dictate'; return; }
+    qaRecog = new SR(); qaRecog.lang = 'en-US'; qaRecog.continuous = true; qaRecog.interimResults = false;
+    qaRecog.onresult = e => {
+      let s = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) s += e.results[i][0].transcript.trim() + '\n';
+      if (s) { const cur = ta.value.trim(); ta.value = (cur ? cur + '\n' : '') + s; }
+    };
+    qaRecog.onend = () => { qaListening = false; btn.classList.remove('on'); btn.textContent = '🎤 Dictate'; };
+    qaRecog.onerror = () => { qaListening = false; btn.classList.remove('on'); btn.textContent = '🎤 Dictate'; };
+    try { qaRecog.start(); qaListening = true; btn.classList.add('on'); btn.textContent = '⏹ Stop'; }
+    catch (e) { toast('Couldn’t start the mic'); }
+  }
+
+  const titleCase = s => s.replace(/\b\w/g, c => c.toUpperCase());
+  function parseBulk(text) {
+    return [...new Set(text.split(/[,\n;]+/).map(s => s.replace(/^[\s\-*•\d.)]+/, '').trim().toLowerCase()).filter(s => s.length >= 2))];
+  }
+  function bulkMatch(token) {
+    const t = token.toLowerCase();
+    let best = null, bs = 0;
+    ingredients.forEach(i => {
+      const n = i.name.toLowerCase(); let s = 0;
+      if (n === t) s = 100;
+      else if ((' ' + t + ' ').includes(' ' + n + ' ')) s = n.length + 5;
+      else if (t.includes(n)) s = n.length;
+      else if (n.includes(t) && t.length >= 3) s = t.length;
+      if (s > bs) { bs = s; best = i; }
+    });
+    return bs ? best : null;
+  }
+
+  function openQuickAdd() {
+    const el = document.getElementById('modal');
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    el.innerHTML = `
+      <div class="editor">
+        <h2>🎤 Quick add to pantry</h2>
+        <p class="view-note">List everything you have — one per line or separated by commas. Tip: tap your keyboard’s 🎤 mic and walk around the kitchen naming foods.</p>
+        <div class="form-field">
+          <textarea id="qa-text" class="qa-ta" placeholder="eggs, milk, spinach&#10;chicken breast&#10;greek yogurt, rice, bananas"></textarea>
+          ${SR ? '<div class="btn-row" style="margin-top:8px"><button class="btn" id="qa-mic">🎤 Dictate</button></div>'
+               : '<div class="hint">No in-app mic on this browser — tap your keyboard’s 🎤 button and dictate into the box.</div>'}
+        </div>
+        <div class="btn-row"><button class="btn-primary" id="qa-match">Match items</button><button class="btn-cancel" id="qa-cancel">Cancel</button></div>
+        <div id="qa-review"></div>
+      </div>`;
+    openModalShell();
+    const ta = el.querySelector('#qa-text');
+    el.querySelector('#qa-cancel').onclick = closeModal;
+    if (SR) el.querySelector('#qa-mic').onclick = function () { toggleDictation(this, ta); };
+    el.querySelector('#qa-match').onclick = () => {
+      const tokens = parseBulk(ta.value);
+      if (!tokens.length) { toast('Type or dictate a few items first'); return; }
+      showQuickReview(el, tokens);
+    };
+  }
+
+  function showQuickReview(el, tokens) {
+    const review = el.querySelector('#qa-review');
+    const rows = tokens.map(tok => {
+      const m = bulkMatch(tok);
+      if (m) return `<div class="imp-ing matched" data-match="${m.id}"><span class="imp-dot"></span><span class="imp-line">${esc(tok)}</span><span class="imp-tag">${m.emoji||''} ${esc(m.name)}</span></div>`;
+      return `<div class="imp-ing new"><label class="imp-line2"><input type="checkbox" class="imp-create" checked> <span class="imp-line">${esc(tok)}</span></label>
+        <div class="qa-newrow"><input type="text" class="imp-newname" value="${esc(titleCase(tok))}"><select class="qa-aisle">${AISLES.map(a => `<option value="${a.id}"${a.id==='pantry'?' selected':''}>${a.emoji} ${a.name}</option>`).join('')}</select></div></div>`;
+    }).join('');
+    review.innerHTML = `
+      <div class="form-field" style="margin-top:14px">
+        <label>Review (${tokens.length}) — all will be marked <b>Full</b></label>
+        <div class="imp-ings">${rows}</div>
+        <div class="hint">Matched items turn on in your pantry; new ones get created (pick an aisle). Uncheck any you don’t want.</div>
+      </div>
+      <div class="btn-row"><button class="btn-primary" id="qa-add">Add to pantry</button></div>`;
+    review.querySelector('#qa-add').onclick = () => {
+      let n = 0;
+      review.querySelectorAll('.imp-ing').forEach(row => {
+        if (row.classList.contains('matched')) { setLevel(row.dataset.match, 'full'); grocery.delete(row.dataset.match); n++; return; }
+        const cb = row.querySelector('.imp-create');
+        if (cb && cb.checked) {
+          const nm = row.querySelector('.imp-newname').value.trim();
+          if (nm) {
+            let it = ingredients.find(i => i.name.toLowerCase() === nm.toLowerCase());
+            if (!it) { it = { id: uid(nm), name: nm, aisle: row.querySelector('.qa-aisle').value || 'pantry', emoji: '🛒' }; ingredients.push(it); }
+            setLevel(it.id, 'full'); grocery.delete(it.id); n++;
+          }
+        }
+      });
+      saveGrocery();
+      if (!persist()) return;
+      stopDictation(); closeModal();
+      renderIngredients(); updateCounts();
+      toast(`Added ${n} item${n!==1?'s':''} to pantry ✓`);
+    };
   }
 
   /* =========================================================
@@ -2352,6 +2463,7 @@
   stToggle.onchange = () => { assumeStaples = stToggle.checked; save(); renderIngredients(); updateCounts(); };
 
   document.getElementById('add-item').onclick = () => openIngredientEditor(null);
+  document.getElementById('quick-add').onclick = () => openQuickAdd();
   document.getElementById('add-dish').onclick = () => openDishEditor(null);
   document.getElementById('import-dish').onclick = () => openImport();
   document.getElementById('build-meal').onclick = () => openMealBuilder(null);
