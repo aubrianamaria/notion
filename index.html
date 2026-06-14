@@ -320,6 +320,18 @@
     .data-box { width: 100%; min-height: 80px; font-family: ui-monospace, Menlo, monospace; font-size: .72rem; resize: vertical; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
     .data-hr { border: none; border-top: 1px solid var(--line); margin: 20px 0; }
 
+    /* guided tour */
+    .tour { position: fixed; inset: 0; z-index: 300; }
+    .tour-spot { position: absolute; top: 50%; left: 50%; width: 0; height: 0; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(28,20,10,.66); transition: top .25s ease, left .25s ease, width .25s ease, height .25s ease; pointer-events: none; }
+    .tour-card { position: absolute; left: 50%; transform: translateX(-50%); max-width: 300px; width: calc(100% - 32px); background: #fff; border-radius: 16px; padding: 16px 18px; box-shadow: 0 12px 34px rgba(0,0,0,.34); }
+    .tour-card .tour-step { font-size: .7rem; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .tour-card h3 { margin: 4px 0 6px; font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.12rem; }
+    .tour-card p { margin: 0 0 14px; font-size: .9rem; line-height: 1.45; color: var(--ink); }
+    .tour-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .tour-skip { border: none; background: none; color: var(--muted); font-weight: 700; cursor: pointer; font-family: inherit; font-size: .82rem; }
+    .tour-nav { display: flex; gap: 8px; }
+    .tour-nav .btn, .tour-nav .btn-primary { padding: 9px 15px; font-size: .85rem; }
+
     /* quick / voice add */
     .qa-ta { min-height: 130px; }
     .qa-newrow { display: flex; gap: 8px; margin-top: 6px; }
@@ -503,6 +515,23 @@
   </nav>
 
   <div class="toast" id="toast"></div>
+
+  <!-- GUIDED TOUR -->
+  <div id="tour" class="tour" style="display:none">
+    <div id="tour-spot" class="tour-spot"></div>
+    <div id="tour-card" class="tour-card">
+      <div class="tour-step" id="tour-step"></div>
+      <h3 id="tour-title"></h3>
+      <p id="tour-text"></p>
+      <div class="tour-actions">
+        <button id="tour-skip" class="tour-skip">Skip</button>
+        <div class="tour-nav">
+          <button id="tour-back" class="btn">Back</button>
+          <button id="tour-next" class="btn-primary">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- MEAL MODAL -->
   <div class="modal-bg" id="modal-bg">
@@ -1957,11 +1986,13 @@
         <ul><li><b>Backup &amp; restore</b> (Pantry tab) moves everything between devices.</li><li><b>✨ Add new built-ins</b> pulls in new library items as the app grows.</li></ul>
         <div class="btn-row">
           <button class="btn-primary" id="help-close">Got it</button>
+          <button class="btn" id="help-tour">▶ Take the tour</button>
           <button class="btn" id="help-resettips">Show tips again</button>
         </div>
       </div>`;
     openModalShell();
     el.querySelector('#help-close').onclick = closeModal;
+    el.querySelector('#help-tour').onclick = () => { closeModal(); startTour(); };
     el.querySelector('#help-resettips').onclick = () => {
       tipsDismissed.clear(); saveTips(); showTipFor(currentView); toast('Tips re-enabled 💡');
     };
@@ -1982,14 +2013,75 @@
           <li>👶 Baby-friendly tips throughout for your little one.</li>
         </ul>
         <div class="btn-row">
-          <button class="btn-primary" id="welcome-go">Let’s go</button>
-          <button class="btn" id="welcome-tour">Show me how</button>
+          <button class="btn-primary" id="welcome-tour">▶ Take the tour</button>
+          <button class="btn" id="welcome-go">Skip for now</button>
         </div>
       </div>`;
     openModalShell();
     const seen = () => localStorage.setItem(LS_SEEN, '1');
     el.querySelector('#welcome-go').onclick = () => { seen(); closeModal(); };
-    el.querySelector('#welcome-tour').onclick = () => { seen(); openHelp(); };
+    el.querySelector('#welcome-tour').onclick = () => { seen(); closeModal(); startTour(); };
+  }
+
+  /* guided spotlight tour */
+  const TOUR = [
+    { view:'home', sel:null, title:'Welcome to Pantry → Plate', text:'A quick tour of how it all fits together. You can skip anytime.' },
+    { view:'home', sel:'nav.tabs', title:'Five sections', text:'Home, Pantry, Dishes, Meals and your grocery List — switch between them down here.' },
+    { view:'home', sel:'#hero-card', title:'Meal of the Day', text:'Your daily pick, favouring something you can cook right now. Tap it for the full recipe.' },
+    { view:'ingredients', sel:'.lvl-legend', title:'Track what you have', text:'Tap any ingredient to cycle Full → Low → Out. Anything “Out” jumps onto your grocery list.' },
+    { view:'ingredients', sel:'#quick-add', title:'Add in bulk', text:'Type or dictate a whole list at once — perfect for a first kitchen stock-up.' },
+    { view:'dishes', sel:'#dishes-list .meal', title:'Dishes', text:'Single recipes, ranked by how much you already have. Tap one for steps, nutrition and baby tips.' },
+    { view:'dishes', sel:'#import-dish', title:'Import recipes', text:'Pull a recipe straight in from a link or pasted text.' },
+    { view:'dishes', sel:'#goals', title:'Filter by goal', text:'High-protein, low-sodium, quick, 👶 for baby and more — these filter Dishes and Meals.' },
+    { view:'meals', sel:'#build-meal', title:'Build a meal', text:'Combine a main with sides; the coverage bar shows whether the plate is balanced.' },
+    { view:'grocery', sel:'#grocery-add', title:'Grocery list', text:'It fills itself from anything you run out of — or quick-add here. Tap ✓ when you’ve bought it.' },
+    { view:'home', sel:'#help-btn', title:'Need help later?', text:'Tap the ? anytime for the full guide. That’s the tour — enjoy planning!' },
+  ];
+  let tourIdx = 0;
+  function startTour() {
+    tourIdx = 0;
+    document.getElementById('tour-skip').onclick = endTour;
+    document.getElementById('tour-back').onclick = () => { if (tourIdx > 0) { tourIdx--; runTourStep(); } };
+    document.getElementById('tour-next').onclick = () => { if (tourIdx < TOUR.length - 1) { tourIdx++; runTourStep(); } else endTour(); };
+    window.addEventListener('resize', tourReposition);
+    runTourStep();
+  }
+  function tourReposition() { if (document.getElementById('tour').style.display === 'block') positionTour(TOUR[tourIdx]); }
+  function runTourStep() {
+    const step = TOUR[tourIdx];
+    const apply = () => {
+      document.getElementById('tour-step').textContent = `Step ${tourIdx+1} of ${TOUR.length}`;
+      document.getElementById('tour-title').textContent = step.title;
+      document.getElementById('tour-text').textContent = step.text;
+      document.getElementById('tour-back').style.visibility = tourIdx === 0 ? 'hidden' : 'visible';
+      document.getElementById('tour-next').textContent = tourIdx === TOUR.length - 1 ? 'Done' : 'Next';
+      document.getElementById('tour').style.display = 'block';
+      positionTour(step);
+    };
+    if (step.view && currentView !== step.view) { switchView(step.view); setTimeout(apply, 90); }
+    else apply();
+  }
+  function positionTour(step) {
+    const target = step.sel ? document.querySelector(step.sel) : null;
+    if (target) target.scrollIntoView({ block: 'center' });
+    requestAnimationFrame(() => {
+      const spot = document.getElementById('tour-spot'), card = document.getElementById('tour-card');
+      if (target) {
+        const r = target.getBoundingClientRect(), pad = 8, cardH = 184;
+        spot.style.top = (r.top - pad) + 'px'; spot.style.left = (r.left - pad) + 'px';
+        spot.style.width = (r.width + pad*2) + 'px'; spot.style.height = (r.height + pad*2) + 'px';
+        if (window.innerHeight - r.bottom > cardH + 24) { card.style.top = (r.bottom + 12) + 'px'; card.style.bottom = 'auto'; card.style.transform = 'translateX(-50%)'; }
+        else if (r.top > cardH + 24) { card.style.top = (r.top - cardH - 12) + 'px'; card.style.bottom = 'auto'; card.style.transform = 'translateX(-50%)'; }
+        else { card.style.top = 'auto'; card.style.bottom = '92px'; card.style.transform = 'translateX(-50%)'; }
+      } else {
+        spot.style.width = '0px'; spot.style.height = '0px'; spot.style.top = '50%'; spot.style.left = '50%';
+        card.style.top = '50%'; card.style.bottom = 'auto'; card.style.transform = 'translate(-50%,-50%)';
+      }
+    });
+  }
+  function endTour() {
+    document.getElementById('tour').style.display = 'none';
+    window.removeEventListener('resize', tourReposition);
   }
 
   /* =========================================================
