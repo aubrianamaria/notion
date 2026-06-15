@@ -366,14 +366,14 @@
     /* home / landing */
     .home-greet h1 { margin: 0; font-size: 1.6rem; }
     .home-greet p { margin: 2px 0 18px; color: var(--muted); font-weight: 700; }
-    .home-hero { position: relative; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); cursor: pointer; min-height: 210px; display: flex; align-items: flex-end; transition: .15s; }
+    .home-hero { position: relative; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); cursor: pointer; min-height: 132px; display: flex; align-items: flex-end; transition: .15s; }
     .home-hero:hover { transform: translateY(-2px); }
     .home-hero .hero-bg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
     .home-hero .hero-bg .ph { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-    .home-hero .hero-emoji { font-size: 5rem; filter: drop-shadow(0 4px 7px rgba(80,50,20,.28)); }
-    .home-hero .hero-info { position: relative; width: 100%; padding: 18px 20px 20px; background: linear-gradient(to top, rgba(35,25,12,.62), rgba(35,25,12,.06) 70%, transparent); color: #fff; }
-    .home-hero .hero-info h2 { margin: 3px 0 9px; color: #fff; font-size: 1.5rem; line-height: 1.15; }
-    .home-hero .eyebrow { font-weight: 800; font-size: .73rem; text-transform: uppercase; letter-spacing: .05em; opacity: .96; }
+    .home-hero .hero-emoji { font-size: 3.2rem; filter: drop-shadow(0 4px 7px rgba(80,50,20,.28)); }
+    .home-hero .hero-info { position: relative; width: 100%; padding: 12px 14px 13px; background: linear-gradient(to top, rgba(35,25,12,.66), rgba(35,25,12,.08) 75%, transparent); color: #fff; }
+    .home-hero .hero-info h2 { margin: 2px 0 7px; color: #fff; font-size: 1.2rem; line-height: 1.15; }
+    .home-hero .eyebrow { font-weight: 800; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; opacity: .96; }
     .home-hero .nutri .badge { background: rgba(255,255,255,.22); color: #fff; }
     .home-hero .nutri .badge.good { background: rgba(255,255,255,.34); color: #fff; }
     .ready-tag.static { position: static; display: inline-block; margin-top: 10px; box-shadow: none; }
@@ -1950,7 +1950,6 @@
   let tipsDismissed = new Set(JSON.parse(localStorage.getItem(LS_TIPS) || '[]'));
   function saveTips() { localStorage.setItem(LS_TIPS, JSON.stringify([...tipsDismissed])); }
   const TIPS = {
-    home: 'Your <b>Meal of the Day</b> favours things you can cook right now. Tap any tile to jump to a section.',
     ingredients: 'Tap an item to cycle <b>Full → Low → Out</b>. Out items hop onto your grocery list. Tap ✎ to edit one.',
     dishes: 'Tap a dish for the recipe, or <b>🍳 I made this</b> to log what you used. Add recipes with <b>🔗 Import</b>.',
     meals: 'A meal = a main + sides. The <b>coverage</b> chips show if it’s balanced. Tap <b>➕ Build a meal</b>.',
