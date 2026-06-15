@@ -673,6 +673,19 @@
     { id:'chilipowder', name:'Chili Powder', aisle:'spice', emoji:'🌶️', staple:true },
     { id:'currypowder', name:'Curry Powder', aisle:'spice', emoji:'🍛', staple:true },
     { id:'turmeric', name:'Turmeric', aisle:'spice', emoji:'🟡', staple:true },
+    // ——— basics & kid-friendly ———
+    { id:'jam', name:'Jam / Jelly', aisle:'pantry', emoji:'🍇' },
+    { id:'cereal', name:'Cereal', aisle:'grain', emoji:'🥣' },
+    { id:'crackers', name:'Crackers', aisle:'grain', emoji:'🍘' },
+    { id:'buns', name:'Burger / Hot Dog Buns', aisle:'grain', emoji:'🍔' },
+    { id:'waffles', name:'Frozen Waffles', aisle:'grain', emoji:'🧇' },
+    { id:'hotdog', name:'Hot Dogs', aisle:'protein', emoji:'🌭' },
+    { id:'nuggets', name:'Chicken Nuggets', aisle:'protein', emoji:'🍗' },
+    { id:'deliturkey', name:'Deli Turkey', aisle:'protein', emoji:'🥪' },
+    { id:'stringcheese', name:'String Cheese', aisle:'dairy', emoji:'🧀' },
+    { id:'fries', name:'Frozen Fries', aisle:'pantry', emoji:'🍟' },
+    { id:'popcorn', name:'Popcorn', aisle:'pantry', emoji:'🍿' },
+    { id:'pickle', name:'Pickles', aisle:'produce', emoji:'🥒' },
   ];
 
   /* =========================================================
@@ -1037,6 +1050,91 @@
       baby:{ ok:false, note:'' },
       steps:['Mix the almonds and raisins.']
     },
+    // ——— basics & kid-friendly comfort food ———
+    {
+      id:'macncheese', name:'Stovetop Mac & Cheese', type:'dinner', time:20, servings:4, emoji:'🧀',
+      ing:['pasta','cheddar','milk','butter','flour'],
+      nutri:{ kcal:430, protein:16, sodium:560, fiber:2 }, veg:true,
+      baby:{ ok:true, note:'A toddler favourite. Use small soft shapes (or cut the pasta short), keep the sauce thick so it clings, and go easy on salt for her portion.' },
+      steps:['Boil pasta until soft.','Melt butter, stir in flour, then whisk in milk to make a smooth sauce.','Off the heat, stir in cheddar until melty; fold in the pasta.']
+    },
+    {
+      id:'pbj', name:'PB&J Sandwich', type:'lunch', time:5, servings:1, emoji:'🥪',
+      ing:['bread','peanutbutter','jam'],
+      nutri:{ kcal:350, protein:11, sodium:360, fiber:4 }, veg:true,
+      baby:{ ok:true, note:'Spread the peanut butter THIN (a thick layer is a choking hazard), use a little jam, and cut into soft finger strips. Good for keeping peanut in her diet.' },
+      steps:['Spread peanut butter on one slice, jam on the other.','Press together and cut into strips or triangles.']
+    },
+    {
+      id:'cerealmilk', name:'Cereal & Milk', type:'breakfast', time:2, servings:1, emoji:'🥣',
+      ing:['cereal','milk'],
+      nutri:{ kcal:220, protein:8, sodium:220, fiber:3 }, veg:true,
+      baby:{ ok:true, note:'Choose a low-sugar O-shaped cereal — it softens in the milk and is great pincer-grasp practice. Serve the milk separately or barely moistened so it isn’t a slippery bowl.' },
+      steps:['Pour cereal into a bowl.','Add cold milk and serve.']
+    },
+    {
+      id:'grilledcheese', name:'Grilled Cheese', type:'lunch', time:8, servings:1, emoji:'🧀',
+      ing:['bread','cheddar','butter'],
+      nutri:{ kcal:380, protein:14, sodium:600, fiber:2 }, veg:true,
+      baby:{ ok:true, note:'Cut into dippable strips once cooled slightly. Use a little less cheese for her to keep the salt down.' },
+      steps:['Butter the outside of two bread slices.','Add cheddar between them.','Grill in a pan until golden and melty, then slice.']
+    },
+    {
+      id:'cheeseburger', name:'Classic Cheeseburger', type:'dinner', time:20, servings:4, emoji:'🍔',
+      ing:['beef','buns','cheddar','lettuce','tomato','ketchup'],
+      nutri:{ kcal:520, protein:28, sodium:680, fiber:2 },
+      baby:{ ok:true, note:'Beef is a top iron source for her. Pull off a piece of the cooked patty, break it into small soft crumbles or thin strips, and skip the bun/ketchup salt.' },
+      steps:['Form beef into patties and season.','Cook through, melt cheddar on top.','Build on buns with lettuce, tomato and ketchup.']
+    },
+    {
+      id:'hotdogmeal', name:'Classic Hot Dog', type:'lunch', time:10, servings:2, emoji:'🌭',
+      ing:['hotdog','buns','ketchup','mustard'],
+      nutri:{ kcal:330, protein:12, sodium:810, fiber:2 },
+      baby:{ ok:true, note:'Hot dogs are the #1 choking food — never serve in coins. Quarter lengthwise into thin strips for her, and remember they are very high in sodium, so just a little.' },
+      steps:['Heat the hot dogs through (boil or pan).','Tuck into buns.','Top with ketchup and mustard.']
+    },
+    {
+      id:'nuggetsfries', name:'Chicken Nuggets & Fries', type:'dinner', time:22, servings:3, emoji:'🍗',
+      ing:['nuggets','fries','ketchup'],
+      nutri:{ kcal:480, protein:18, sodium:700, fiber:3 },
+      baby:{ ok:true, note:'Let them cool, then cut the nuggets and fries into small soft pieces she can pick up. An easy crowd-pleaser — pair with some veg or fruit.' },
+      steps:['Bake the nuggets and fries per the package.','Cool slightly and serve with ketchup.']
+    },
+    {
+      id:'wafflesberries', name:'Waffles & Berries', type:'breakfast', time:8, servings:2, emoji:'🧇',
+      ing:['waffles','berries','maple'],
+      nutri:{ kcal:300, protein:6, sodium:420, fiber:3 }, veg:true,
+      baby:{ ok:true, note:'Toast, then cut into strips and skip the syrup for her. Quarter the berries so they aren’t a choking risk.' },
+      steps:['Toast the waffles.','Top with berries.','Add maple syrup for the grown-ups.']
+    },
+    {
+      id:'turkeysandwich', name:'Turkey & Cheese Sandwich', type:'lunch', time:5, servings:1, emoji:'🥪',
+      ing:['bread','deliturkey','cheddar','lettuce','mayo'],
+      nutri:{ kcal:360, protein:22, sodium:900, fiber:2 },
+      baby:{ ok:false, note:'' },
+      steps:['Layer turkey, cheese and lettuce on bread.','Add a little mayo and close.']
+    },
+    {
+      id:'muffinpizza', name:'English Muffin Pizza', type:'snack', time:12, servings:2, emoji:'🍕',
+      ing:['englishmuffin','pastasauce','mozzarella'],
+      nutri:{ kcal:280, protein:12, sodium:520, fiber:2 }, veg:true,
+      baby:{ ok:true, note:'Let it cool so the cheese isn’t too hot, then cut into small strips. Go light on the sauce since jarred sauce is salty.' },
+      steps:['Split the English muffin and spread with sauce.','Top with mozzarella.','Toast or broil until bubbly, then slice.']
+    },
+    {
+      id:'cheesecrackers', name:'Cheese & Crackers', type:'snack', time:3, servings:2, emoji:'🧀',
+      ing:['crackers','cheddar'],
+      nutri:{ kcal:220, protein:8, sodium:360, fiber:1 }, veg:true,
+      baby:{ ok:false, note:'' },
+      steps:['Slice the cheddar.','Serve with crackers.']
+    },
+    {
+      id:'popcornsnack', name:'Buttered Popcorn', type:'snack', time:5, servings:4, emoji:'🍿',
+      ing:['popcorn','butter'],
+      nutri:{ kcal:130, protein:2, sodium:200, fiber:3 }, veg:true,
+      baby:{ ok:false, note:'' },
+      steps:['Pop the popcorn.','Toss with a little melted butter.']
+    },
   ];
 
   /* =========================================================
@@ -1084,6 +1182,26 @@
       reindex(); persist(); // write forward as v2
     }
     reindex();
+    mergeNewDefaults();
+  }
+  // Add freshly-shipped default ingredients/dishes/meals to an existing saved
+  // catalog, once each. Anything the user has already seen (tracked by id) is
+  // left alone, so we never re-add something they deleted on a later update.
+  const LS_SEEDED = 'p2p_seeded_ids_v1';
+  function mergeNewDefaults() {
+    let known = new Set();
+    try { const raw = localStorage.getItem(LS_SEEDED); if (raw) known = new Set(JSON.parse(raw)); } catch (e) {}
+    let added = false;
+    const addMissing = (defaults, list) => defaults.forEach(def => {
+      if (known.has(def.id)) return;
+      if (!list.some(x => x.id === def.id)) { list.push(clone(def)); added = true; }
+    });
+    addMissing(DEFAULT_INGREDIENTS, ingredients);
+    addMissing(DEFAULT_DISHES, dishes);
+    addMissing(DEFAULT_MEALS, meals);
+    const allIds = [...DEFAULT_INGREDIENTS, ...DEFAULT_DISHES, ...DEFAULT_MEALS].map(x => x.id);
+    localStorage.setItem(LS_SEEDED, JSON.stringify(allIds));
+    if (added) { reindex(); persist(); }
   }
   function saveCatalog() { reindex(); localStorage.setItem(LS_CATALOG, JSON.stringify({ version: 2, ingredients, dishes, meals })); }
   function persist() {
