@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Room Layout Planner — 3D Interior Design</title>
+<style>
+  :root {
+    --bg: #1d1b22;
+    --panel: #272430;
+    --panel-2: #312d3b;
+    --accent: #b07cc6;
+    --accent-2: #8a5fa8;
+    --text: #efe9f3;
+    --muted: #a59cb0;
+    --line: #3c3747;
+    --good: #6cc28f;
+    --warn: #e0a45e;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+  .app { display: grid; grid-template-columns: 290px 1fr 300px; grid-template-rows: 50px 1fr; height: 100vh; }
+
+  /* Top bar */
+  header {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  header .logo { font-weight: 700; letter-spacing: .3px; }
+  header .logo span { color: var(--accent); }
+  header input.proj { background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 6px; padding: 6px 8px; width: 160px; }
+  header .spacer { flex: 1; }
+  button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 13px;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent-2); border-color: var(--accent); }
+  button.primary:hover { background: var(--accent); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { border: none; border-radius: 0; }
+  .seg button.on { background: var(--accent-2); }
+
+  /* Panels */
+  aside { background: var(--panel); overflow-y: auto; padding: 12px; }
+  aside.left { border-right: 1px solid var(--line); }
+  aside.right { border-left: 1px solid var(--line); }
+  .section { margin-bottom: 18px; }
+  .section > h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .8px;
+    color: var(--muted); margin: 0 0 8px; }
+  .hint { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  /* Center / canvas */
+  main { position: relative; background: #15131a; }
+  #scene { width: 100%; height: 100%; display: block; }
+  .overlay-hint {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,.55); padding: 6px 12px; border-radius: 20px;
+    font-size: 11px; color: var(--muted); pointer-events: none;
+  }
+  .loading {
+    position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    background: rgba(10,8,14,.7); flex-direction: column; gap: 10px; z-index: 5; text-align: center;
+  }
+  .loading.show { display: flex; }
+  .spinner { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Upload / thumbs */
+  .drop {
+    border: 1px dashed var(--line); border-radius: 8px; padding: 14px 10px; text-align: center;
+    color: var(--muted); font-size: 12px; cursor: pointer; transition: .15s;
+  }
+  .drop:hover, .drop.drag { border-color: var(--accent); color: var(--text); background: var(--panel-2); }
+  .thumbs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .thumbs .thumb { position: relative; border-radius: 6px; overflow: hidden; aspect-ratio: 4/3; background:#000; }
+  .thumbs .thumb img, .thumbs .thumb video { width: 100%; height: 100%; object-fit: cover; }
+  .thumbs .thumb button { position: absolute; top: 2px; right: 2px; padding: 0 5px; font-size: 11px;
+    background: rgba(0,0,0,.6); border: none; }
+
+  /* Detection results */
+  .detrow { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--line); }
+  .detrow .name { flex: 1; font-size: 13px; text-transform: capitalize; }
+  .detrow .cnt { background: var(--panel-2); border-radius: 10px; padding: 1px 8px; font-size: 11px; color: var(--muted); }
+
+  /* Library */
+  .lib { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .lib button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px; text-align: left; }
+  .lib button .t { font-size: 12px; }
+  .lib button .d { font-size: 10px; color: var(--muted); }
+  .libcat { font-size: 11px; color: var(--muted); margin: 10px 0 4px; text-transform: uppercase; letter-spacing:.6px; }
+
+  /* Properties */
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 3px; }
+  .field input[type="text"], .field input[type="number"], .field select {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 6px; padding: 6px 8px; font-size: 13px;
+  }
+  .field input[type="color"] { width: 100%; height: 30px; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 6px; padding: 2px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .selname { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .empty-sel { color: var(--muted); font-size: 12px; line-height: 1.6; }
+  .danger { color: #e98080; border-color: #5a3030; }
+  .danger:hover { border-color: #e98080; }
+  .row { display: flex; gap: 6px; }
+  .row > * { flex: 1; }
+  .kbd { background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">Room<span>Planner</span></div>
+    <input class="proj" id="projName" value="My Room" title="Project name" />
+    <div class="spacer"></div>
+    <div class="seg" title="Display units">
+      <button id="unitFt" class="on">ft</button>
+      <button id="unitM">m</button>
+    </div>
+    <button id="topViewBtn" title="Toggle top-down view">Top view</button>
+    <button id="saveBtn">Save</button>
+    <select id="loadSel" style="background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px;">
+      <option value="">Load…</option>
+    </select>
+    <button id="exportBtn">Export</button>
+    <button id="importBtn">Import</button>
+    <button id="newBtn">New</button>
+  </header>
+
+  <!-- LEFT: input & library -->
+  <aside class="left">
+    <div class="section">
+      <h3>1 · Add photos / video</h3>
+      <div class="drop" id="drop">
+        Drop room photos or a video here, or <u>click to browse</u>.
+      </div>
+      <input type="file" id="fileInput" accept="image/*,video/*" multiple hidden />
+      <div class="thumbs" id="thumbs"></div>
+    </div>
+
+    <div class="section">
+      <h3>2 · Detect furniture</h3>
+      <button class="primary" id="detectBtn" style="width:100%;">Detect key items from media</button>
+      <p class="hint">Finds furniture-class objects (couch, bed, table, chair, TV…) and ignores small clutter. Dimensions are best-guess standards you can correct in step 4.</p>
+      <div id="detResults"></div>
+      <button id="addDetectedBtn" style="width:100%;margin-top:6px;display:none;">＋ Add detected items to room</button>
+    </div>
+
+    <div class="section">
+      <h3>3 · Furniture library</h3>
+      <div class="lib" id="library"></div>
+    </div>
+  </aside>
+
+  <!-- CENTER: 3D -->
+  <main>
+    <canvas id="scene"></canvas>
+    <div class="overlay-hint">
+      Drag furniture to move · <span class="kbd">R</span> rotate 15° · <span class="kbd">Del</span> delete · drag empty space to orbit · scroll to zoom
+    </div>
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div id="loadingText">Loading detector…</div>
+    </div>
+  </main>
+
+  <!-- RIGHT: properties -->
+  <aside class="right" id="propPanel"></aside>
+</div>
+
+<input type="file" id="importFile" accept="application/json" hidden />
+
+<!-- Visible banner if any library fails to load (so buttons are never silently dead) -->
+<div id="loadErr" style="display:none;position:fixed;top:0;left:0;right:0;z-index:50;background:#7a2f2f;color:#fff;padding:10px 14px;font:14px system-ui;text-align:center">
+  Couldn't load the 3D libraries (Three.js). This page needs an internet connection the first time you open it. Reconnect and reload.
+</div>
+
+<!-- Classic (non-module) global builds: max compatibility, work even from a downloaded file.
+     r128 still ships both the UMD build AND the global OrbitControls file. -->
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<!-- TensorFlow.js + COCO-SSD for in-browser furniture detection -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+
+<script>
+// Bail out loudly instead of silently if Three.js didn't load.
+if (typeof THREE === 'undefined') {
+  document.getElementById('loadErr').style.display = 'block';
+  throw new Error('Three.js failed to load from CDN.');
+}
+// Safety net: if the controls file ever fails to load, fall back to a no-op stub
+// so the rest of the app (and every button) keeps working instead of dying.
+let OrbitControls = THREE.OrbitControls;
+if (typeof OrbitControls !== 'function') {
+  OrbitControls = function () {
+    this.target = new THREE.Vector3();
+    this.enabled = true; this.enableDamping = false; this.maxPolarAngle = Math.PI;
+    this.update = function () {};
+  };
+}
+
+/* ----------------------------------------------------------------------------
+   Units & furniture catalog
+   Internally everything is stored in METERS. The UI shows ft or m.
+---------------------------------------------------------------------------- */
+const FT = 0.3048;
+const ft = n => n * FT;                 // feet -> meters
+let unit = 'ft';                        // 'ft' | 'm'
+const toUnit = m => unit === 'ft' ? m / FT : m;
+const fromUnit = v => unit === 'ft' ? v * FT : v;
+const unitLabel = () => unit;
+
+// type -> definition. Sizes are {w (x), d (z/depth), h (y/height)} in METERS.
+// `coco` lists the COCO-SSD class names that map onto this furniture type.
+const CATALOG = {
+  sofa:        { label: 'Sofa',         cat: 'Living', color: '#6d7fa8', w: ft(7),   d: ft(3),   h: ft(2.8), coco: ['couch'] },
+  sectional:   { label: 'Sectional',    cat: 'Living', color: '#6d7fa8', w: ft(9),   d: ft(6),   h: ft(2.8) },
+  loveseat:    { label: 'Loveseat',     cat: 'Living', color: '#6d7fa8', w: ft(5),   d: ft(3),   h: ft(2.8) },
+  floor_lamp:  { label: 'Floor lamp',   cat: 'Living', color: '#c9c2a8', w: ft(1.2), d: ft(1.2), h: ft(5.4) },
+  armchair:    { label: 'Armchair',     cat: 'Living', color: '#7c8bb0', w: ft(2.8), d: ft(3),   h: ft(2.8), coco: ['chair'] },
+  coffee_table:{ label: 'Coffee table', cat: 'Living', color: '#9b7d5e', w: ft(4),   d: ft(2),   h: ft(1.4) },
+  side_table:  { label: 'Side table',   cat: 'Living', color: '#9b7d5e', w: ft(1.5), d: ft(1.5), h: ft(2)   },
+  tv_stand:    { label: 'TV stand',     cat: 'Living', color: '#5a5560', w: ft(5),   d: ft(1.3), h: ft(1.6) },
+  tv:          { label: 'TV',           cat: 'Living', color: '#222228', w: ft(4),   d: ft(0.3), h: ft(2.3), coco: ['tv'] },
+  rug:         { label: 'Rug',          cat: 'Living', color: '#a86b6b', w: ft(8),   d: ft(5),   h: ft(0.05) },
+  bookshelf:   { label: 'Bookshelf',    cat: 'Living', color: '#8a6f52', w: ft(3),   d: ft(1),   h: ft(6)   },
+
+  bed_twin:    { label: 'Bed (twin)',   cat: 'Bedroom', color: '#b08cae', w: ft(3.3), d: ft(6.5), h: ft(2) },
+  bed_queen:   { label: 'Bed (queen)',  cat: 'Bedroom', color: '#b08cae', w: ft(5),   d: ft(6.7), h: ft(2), coco: ['bed'] },
+  bed_king:    { label: 'Bed (king)',   cat: 'Bedroom', color: '#b08cae', w: ft(6.3), d: ft(6.7), h: ft(2) },
+  nightstand:  { label: 'Nightstand',   cat: 'Bedroom', color: '#9b7d5e', w: ft(1.6), d: ft(1.4), h: ft(2) },
+  dresser:     { label: 'Dresser',      cat: 'Bedroom', color: '#8a6f52', w: ft(4.5), d: ft(1.6), h: ft(2.8) },
+  wardrobe:    { label: 'Wardrobe',     cat: 'Bedroom', color: '#7a614a', w: ft(4),   d: ft(2),   h: ft(6.5) },
+
+  dining_table:{ label: 'Dining table', cat: 'Dining', color: '#9b7d5e', w: ft(5),   d: ft(3),   h: ft(2.5), coco: ['dining table'] },
+  dining_chair:{ label: 'Dining chair', cat: 'Dining', color: '#7c8bb0', w: ft(1.6), d: ft(1.6), h: ft(3),  coco: ['chair'] },
+  desk:        { label: 'Desk',         cat: 'Office', color: '#9b7d5e', w: ft(4),   d: ft(2),   h: ft(2.5) },
+  office_chair:{ label: 'Office chair', cat: 'Office', color: '#5a5560', w: ft(2),   d: ft(2),   h: ft(3.3) },
+
+  fridge:      { label: 'Refrigerator', cat: 'Other', color: '#c7ccd4', w: ft(3),   d: ft(2.8), h: ft(5.8), coco: ['refrigerator'] },
+  plant:       { label: 'Plant',        cat: 'Other', color: '#5f8f63', w: ft(1.5), d: ft(1.5), h: ft(3.2), coco: ['potted plant'] },
+};
+
+// Which COCO classes we treat as "key items". Everything else (vase, book,
+// clock, cup, bottle…) is ignored so random clutter never enters the model.
+const COCO_TO_TYPE = {};
+for (const [type, def] of Object.entries(CATALOG)) {
+  for (const c of (def.coco || [])) {
+    // Prefer the first/most specific mapping (chair -> armchair, etc.)
+    if (!COCO_TO_TYPE[c]) COCO_TO_TYPE[c] = type;
+  }
+}
+
+/* ----------------------------------------------------------------------------
+   App state
+---------------------------------------------------------------------------- */
+const state = {
+  room: { w: ft(15), d: ft(12), h: ft(9), floor: '#d8cdbf', wall: '#3a3640' },
+  items: [],          // { id, type, name, w, d, h, x, z, rot, color }
+  media: [],          // { id, kind:'image'|'video', url, el }
+  detected: null,     // { type: count }
+  seq: 1,
+};
+
+/* ----------------------------------------------------------------------------
+   Three.js setup
+---------------------------------------------------------------------------- */
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#15131a');
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 500);
+camera.position.set(6, 6, 9);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI / 2 - 0.02;   // don't go under the floor
+controls.target.set(0, 0.5, 0);
+
+// Lights
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444455, 0.9));
+const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+sun.position.set(8, 14, 6);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -20; sun.shadow.camera.right = 20;
+sun.shadow.camera.top = 20; sun.shadow.camera.bottom = -20;
+scene.add(sun);
+
+// Groups we rebuild when the room or items change
+const roomGroup = new THREE.Group();
+const itemGroup = new THREE.Group();
+scene.add(roomGroup, itemGroup);
+
+// Selection helper (wireframe box that follows the selected item)
+const selBox = new THREE.BoxHelper(undefined, 0xb07cc6);
+selBox.visible = false;
+scene.add(selBox);
+
+let selectedId = null;
+
+/* ---- Build / rebuild the room shell ---- */
+function buildRoom() {
+  roomGroup.clear();
+  const { w, d, h, floor, wall } = state.room;
+
+  // Floor
+  const floorMesh = new THREE.Mesh(
+    new THREE.PlaneGeometry(w, d),
+    new THREE.MeshStandardMaterial({ color: floor, roughness: 0.95 })
+  );
+  floorMesh.rotation.x = -Math.PI / 2;
+  floorMesh.receiveShadow = true;
+  floorMesh.name = 'floor';
+  roomGroup.add(floorMesh);
+
+  // Grid (1 ft cells)
+  const grid = new THREE.GridHelper(Math.max(w, d), Math.round(Math.max(w, d) / FT), 0x000000, 0x000000);
+  grid.material.opacity = 0.12; grid.material.transparent = true;
+  grid.position.y = 0.002;
+  roomGroup.add(grid);
+
+  // Four walls (thin boxes), semi-transparent so we can always see inside
+  const wallMat = new THREE.MeshStandardMaterial({ color: wall, transparent: true, opacity: 0.4, roughness: 1, side: THREE.DoubleSide });
+  const t = 0.05;
+  const walls = [
+    { sx: w, sy: h, sz: t, x: 0, z: -d/2 },
+    { sx: w, sy: h, sz: t, x: 0, z:  d/2 },
+    { sx: t, sy: h, sz: d, x: -w/2, z: 0 },
+    { sx: t, sy: h, sz: d, x:  w/2, z: 0 },
+  ];
+  for (const wdef of walls) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(wdef.sx, wdef.sy, wdef.sz), wallMat);
+    m.position.set(wdef.x, wdef.sy / 2, wdef.z);
+    m.receiveShadow = true;
+    roomGroup.add(m);
+  }
+}
+
+/* ---- Build a single furniture mesh ---- */
+function makeItemMesh(item) {
+  const g = new THREE.Group();
+  g.name = 'item:' + item.id;
+
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(item.w, item.h, item.d),
+    new THREE.MeshStandardMaterial({ color: item.color, roughness: 0.7, metalness: 0.05 })
+  );
+  body.position.y = item.h / 2;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  body.userData.isBody = true;
+  g.add(body);
+
+  // A small front marker so orientation is readable
+  const marker = new THREE.Mesh(
+    new THREE.BoxGeometry(item.w * 0.5, 0.02, 0.03),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25 })
+  );
+  marker.position.set(0, item.h + 0.01, item.d / 2 - 0.04);
+  g.add(marker);
+
+  // Floating name label
+  const label = makeLabel(item.name);
+  label.position.set(0, item.h + 0.35, 0);
+  g.add(label);
+
+  g.position.set(item.x, 0, item.z);
+  g.rotation.y = item.rot;
+  g.userData.itemId = item.id;
+  return g;
+}
+
+function makeLabel(text) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = 'rgba(20,16,26,.8)';
+  roundRect(ctx, 4, 14, 248, 36, 10); ctx.fill();
+  ctx.fillStyle = '#efe9f3';
+  ctx.font = '600 26px system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 128, 33, 236);
+  const tex = new THREE.CanvasTexture(c);
+  tex.anisotropy = 4;
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  spr.scale.set(1.4, 0.35, 1);
+  spr.userData.isLabel = true;
+  return spr;
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* ---- Rebuild all items ---- */
+function buildItems() {
+  itemGroup.clear();
+  for (const item of state.items) itemGroup.add(makeItemMesh(item));
+  refreshSelectionBox();
+}
+
+function rebuildAll() { buildRoom(); buildItems(); recenterTargetMaybe(); }
+
+function recenterTargetMaybe() {
+  controls.target.set(0, Math.min(state.room.h * 0.25, 1), 0);
+}
+
+/* ----------------------------------------------------------------------------
+   Selection + dragging
+---------------------------------------------------------------------------- */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+let dragging = false;
+let dragOffset = new THREE.Vector3();
+
+function setPointer(e) {
+  const r = canvas.getBoundingClientRect();
+  pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+}
+
+function itemMeshById(id) {
+  return itemGroup.children.find(c => c.userData.itemId === id);
+}
+function getItem(id) { return state.items.find(i => i.id === id); }
+
+function refreshSelectionBox() {
+  const mesh = selectedId != null ? itemMeshById(selectedId) : null;
+  if (mesh) { selBox.setFromObject(mesh); selBox.visible = true; }
+  else selBox.visible = false;
+}
+
+function selectItem(id) {
+  selectedId = id;
+  refreshSelectionBox();
+  renderProps();
+}
+
+canvas.addEventListener('pointerdown', e => {
+  setPointer(e);
+  raycaster.setFromCamera(pointer, camera);
+  const hits = raycaster.intersectObjects(itemGroup.children, true);
+  if (hits.length) {
+    // Walk up to the item group
+    let o = hits[0].object;
+    while (o && o.userData.itemId == null) o = o.parent;
+    if (o) {
+      selectItem(o.userData.itemId);
+      dragging = true;
+      controls.enabled = false;
+      // offset between hit point on ground plane and item origin
+      const ground = new THREE.Vector3();
+      raycaster.ray.intersectPlane(dragPlane, ground);
+      dragOffset.copy(o.position).sub(ground);
+      return;
+    }
+  }
+  // clicked empty space -> deselect
+  selectItem(null);
+});
+
+canvas.addEventListener('pointermove', e => {
+  if (!dragging || selectedId == null) return;
+  setPointer(e);
+  raycaster.setFromCamera(pointer, camera);
+  const ground = new THREE.Vector3();
+  if (!raycaster.ray.intersectPlane(dragPlane, ground)) return;
+  ground.add(dragOffset);
+  const item = getItem(selectedId);
+  // clamp inside room (account for footprint so it stays within walls)
+  const halfW = state.room.w / 2, halfD = state.room.d / 2;
+  const fw = footprint(item).w / 2, fd = footprint(item).d / 2;
+  item.x = THREE.MathUtils.clamp(ground.x, -halfW + fw, halfW - fw);
+  item.z = THREE.MathUtils.clamp(ground.z, -halfD + fd, halfD - fd);
+  const mesh = itemMeshById(selectedId);
+  mesh.position.set(item.x, 0, item.z);
+  refreshSelectionBox();
+});
+
+window.addEventListener('pointerup', () => {
+  if (dragging) { dragging = false; controls.enabled = true; saveAuto(); }
+});
+
+// account for rotation when clamping into the room
+function footprint(item) {
+  const c = Math.abs(Math.cos(item.rot)), s = Math.abs(Math.sin(item.rot));
+  return { w: item.w * c + item.d * s, d: item.w * s + item.d * c };
+}
+
+window.addEventListener('keydown', e => {
+  if (selectedId == null) return;
+  if (['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+  const item = getItem(selectedId);
+  if (e.key === 'r' || e.key === 'R') {
+    item.rot += (e.shiftKey ? -1 : 1) * Math.PI / 12; // 15°
+    itemMeshById(selectedId).rotation.y = item.rot;
+    refreshSelectionBox(); renderProps(); saveAuto();
+  } else if (e.key === 'Delete' || e.key === 'Backspace') {
+    deleteItem(selectedId);
+  }
+});
+
+/* ----------------------------------------------------------------------------
+   Item operations
+---------------------------------------------------------------------------- */
+function addItem(type, opts = {}) {
+  const def = CATALOG[type];
+  if (!def) return;
+  const item = {
+    id: state.seq++,
+    type,
+    name: opts.name || def.label,
+    w: def.w, d: def.d, h: def.h,
+    color: def.color,
+    x: opts.x ?? 0, z: opts.z ?? 0, rot: 0,
+  };
+  // place near center but nudge so stacked adds don't perfectly overlap
+  const n = state.items.length;
+  item.x = THREE.MathUtils.clamp((opts.x ?? 0) + (n % 4) * 0.4 - 0.6, -state.room.w/2 + item.w, state.room.w/2 - item.w);
+  item.z = THREE.MathUtils.clamp((opts.z ?? 0) + Math.floor(n / 4) * 0.4 - 0.6, -state.room.d/2 + item.d, state.room.d/2 - item.d);
+  state.items.push(item);
+  itemGroup.add(makeItemMesh(item));
+  selectItem(item.id);
+  saveAuto();
+  return item;
+}
+
+function deleteItem(id) {
+  const mesh = itemMeshById(id);
+  if (mesh) itemGroup.remove(mesh);
+  state.items = state.items.filter(i => i.id !== id);
+  if (selectedId === id) selectItem(null);
+  saveAuto();
+}
+
+function updateItemMesh(item) {
+  const old = itemMeshById(item.id);
+  if (old) itemGroup.remove(old);
+  itemGroup.add(makeItemMesh(item));
+  if (selectedId === item.id) refreshSelectionBox();
+}
+
+/* ----------------------------------------------------------------------------
+   Properties panel (right)
+---------------------------------------------------------------------------- */
+const propPanel = document.getElementById('propPanel');
+
+function renderProps() {
+  if (selectedId == null) { renderRoomProps(); return; }
+  const item = getItem(selectedId);
+  if (!item) { renderRoomProps(); return; }
+  const u = unitLabel();
+  propPanel.innerHTML = `
+    <div class="section">
+      <div class="selname">${item.name}</div>
+      <div class="hint">${CATALOG[item.type]?.label || item.type}</div>
+    </div>
+    <div class="section">
+      <h3>Dimensions (${u})</h3>
+      <div class="grid3">
+        <div class="field"><label>Width</label><input type="number" step="0.1" id="iw" value="${num(toUnit(item.w))}"></div>
+        <div class="field"><label>Depth</label><input type="number" step="0.1" id="id" value="${num(toUnit(item.d))}"></div>
+        <div class="field"><label>Height</label><input type="number" step="0.1" id="ih" value="${num(toUnit(item.h))}"></div>
+      </div>
+      <p class="hint">These start as standard best-guesses. Measure the real piece and type exact numbers here.</p>
+    </div>
+    <div class="section">
+      <h3>Placement</h3>
+      <div class="grid2">
+        <div class="field"><label>Position X (${u})</label><input type="number" step="0.1" id="ix" value="${num(toUnit(item.x))}"></div>
+        <div class="field"><label>Position Z (${u})</label><input type="number" step="0.1" id="iz" value="${num(toUnit(item.z))}"></div>
+      </div>
+      <div class="field"><label>Rotation: <span id="rotval">${Math.round(item.rot*180/Math.PI)}</span>°</label>
+        <input type="range" id="irot" min="0" max="360" step="5" value="${(item.rot*180/Math.PI+360)%360}" style="width:100%"></div>
+    </div>
+    <div class="section">
+      <div class="field"><label>Name</label><input type="text" id="iname" value="${escapeHtml(item.name)}"></div>
+      <div class="field"><label>Color</label><input type="color" id="icolor" value="${item.color}"></div>
+    </div>
+    <div class="section row">
+      <button id="dupBtn">Duplicate</button>
+      <button id="delBtn" class="danger">Delete</button>
+    </div>
+  `;
+
+  const apply = () => {
+    item.w = Math.max(0.05, fromUnit(parseFloat(byId('iw').value) || toUnit(item.w)));
+    item.d = Math.max(0.05, fromUnit(parseFloat(byId('id').value) || toUnit(item.d)));
+    item.h = Math.max(0.05, fromUnit(parseFloat(byId('ih').value) || toUnit(item.h)));
+    item.x = fromUnit(parseFloat(byId('ix').value) || 0);
+    item.z = fromUnit(parseFloat(byId('iz').value) || 0);
+    item.name = byId('iname').value || item.name;
+    item.color = byId('icolor').value;
+    updateItemMesh(item);
+    saveAuto();
+  };
+  ['iw','id','ih','ix','iz','iname','icolor'].forEach(idn => {
+    byId(idn).addEventListener('change', apply);
+  });
+  byId('irot').addEventListener('input', e => {
+    item.rot = (+e.target.value) * Math.PI / 180;
+    byId('rotval').textContent = Math.round(+e.target.value);
+    itemMeshById(item.id).rotation.y = item.rot;
+    refreshSelectionBox(); saveAuto();
+  });
+  byId('delBtn').addEventListener('click', () => deleteItem(item.id));
+  byId('dupBtn').addEventListener('click', () => {
+    const copy = addItem(item.type, { name: item.name, x: item.x + 0.3, z: item.z + 0.3 });
+    copy.w = item.w; copy.d = item.d; copy.h = item.h; copy.color = item.color; copy.rot = item.rot;
+    updateItemMesh(copy); selectItem(copy.id);
+  });
+}
+
+function renderRoomProps() {
+  const u = unitLabel();
+  const r = state.room;
+  propPanel.innerHTML = `
+    <div class="section">
+      <div class="selname">Room</div>
+      <p class="empty-sel">Nothing selected. Click a piece of furniture to edit it, or set your room size below.</p>
+    </div>
+    <div class="section">
+      <h3>Room size (${u})</h3>
+      <div class="grid3">
+        <div class="field"><label>Width</label><input type="number" step="0.1" id="rw" value="${num(toUnit(r.w))}"></div>
+        <div class="field"><label>Length</label><input type="number" step="0.1" id="rd" value="${num(toUnit(r.d))}"></div>
+        <div class="field"><label>Height</label><input type="number" step="0.1" id="rh" value="${num(toUnit(r.h))}"></div>
+      </div>
+      <p class="hint">Type your measured room dimensions for an accurate footprint.</p>
+    </div>
+    <div class="section">
+      <h3>Appearance</h3>
+      <div class="grid2">
+        <div class="field"><label>Floor</label><input type="color" id="rfloor" value="${r.floor}"></div>
+        <div class="field"><label>Walls</label><input type="color" id="rwall" value="${r.wall}"></div>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Items in room (${state.items.length})</h3>
+      <div id="itemList"></div>
+    </div>
+  `;
+  const apply = () => {
+    r.w = Math.max(0.5, fromUnit(parseFloat(byId('rw').value) || toUnit(r.w)));
+    r.d = Math.max(0.5, fromUnit(parseFloat(byId('rd').value) || toUnit(r.d)));
+    r.h = Math.max(0.5, fromUnit(parseFloat(byId('rh').value) || toUnit(r.h)));
+    r.floor = byId('rfloor').value;
+    r.wall = byId('rwall').value;
+    rebuildAll(); saveAuto();
+  };
+  ['rw','rd','rh','rfloor','rwall'].forEach(idn => byId(idn).addEventListener('change', apply));
+
+  const list = byId('itemList');
+  if (!state.items.length) { list.innerHTML = '<p class="hint">No furniture yet. Detect from media or use the library.</p>'; }
+  state.items.forEach(it => {
+    const row = document.createElement('div');
+    row.className = 'detrow';
+    row.innerHTML = `<span class="name" style="cursor:pointer">${escapeHtml(it.name)}</span>
+      <button data-id="${it.id}" class="danger" style="padding:1px 7px">✕</button>`;
+    row.querySelector('.name').onclick = () => selectItem(it.id);
+    row.querySelector('button').onclick = () => deleteItem(it.id);
+    list.appendChild(row);
+  });
+}
+
+/* ----------------------------------------------------------------------------
+   Media upload + detection
+---------------------------------------------------------------------------- */
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const thumbs = document.getElementById('thumbs');
+
+drop.addEventListener('click', () => fileInput.click());
+['dragover','dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('drag'); }));
+drop.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+function handleFiles(fileList) {
+  for (const file of fileList) {
+    const url = URL.createObjectURL(file);
+    const kind = file.type.startsWith('video') ? 'video' : 'image';
+    const m = { id: state.seq++, kind, url, el: null };
+    if (kind === 'image') {
+      const img = new Image(); img.src = url; img.crossOrigin = 'anonymous'; m.el = img;
+    } else {
+      const v = document.createElement('video'); v.src = url; v.muted = true; v.playsInline = true; m.el = v;
+    }
+    state.media.push(m);
+  }
+  renderThumbs();
+}
+
+function renderThumbs() {
+  thumbs.innerHTML = '';
+  for (const m of state.media) {
+    const d = document.createElement('div'); d.className = 'thumb';
+    if (m.kind === 'image') {
+      const img = document.createElement('img'); img.src = m.url; d.appendChild(img);
+    } else {
+      const v = document.createElement('video'); v.src = m.url; v.muted = true; d.appendChild(v);
+    }
+    const x = document.createElement('button'); x.textContent = '✕';
+    x.onclick = () => { state.media = state.media.filter(z => z !== m); URL.revokeObjectURL(m.url); renderThumbs(); };
+    d.appendChild(x);
+    thumbs.appendChild(d);
+  }
+}
+
+const loading = document.getElementById('loading');
+const loadingText = document.getElementById('loadingText');
+let cocoModel = null;
+
+document.getElementById('detectBtn').addEventListener('click', runDetection);
+
+async function runDetection() {
+  if (!state.media.length) { alert('Add at least one photo or video first.'); return; }
+  loading.classList.add('show');
+  try {
+    if (!cocoModel) {
+      loadingText.textContent = 'Loading detector (first time only)…';
+      cocoModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+    }
+    const counts = {};        // type -> max count seen
+    const bump = (type, n) => { counts[type] = Math.max(counts[type] || 0, n); };
+
+    for (const m of state.media) {
+      loadingText.textContent = `Analyzing ${m.kind}…`;
+      if (m.kind === 'image') {
+        await ensureImageLoaded(m.el);
+        tallyPredictions(await detectOn(m.el), bump);
+      } else {
+        // sample several frames across the clip
+        const frames = await sampleVideoFrames(m.el, 6);
+        for (const f of frames) tallyPredictions(await detectOn(f), bump);
+      }
+    }
+    state.detected = counts;
+    renderDetection();
+  } catch (err) {
+    console.error(err);
+    alert('Detection failed: ' + err.message + '\nYou can still build the room manually from the library.');
+  } finally {
+    loading.classList.remove('show');
+  }
+}
+
+async function detectOn(el) {
+  const preds = await cocoModel.detect(el, 20);
+  return preds.filter(p => p.score > 0.45 && COCO_TO_TYPE[p.class]);
+}
+
+// For each frame, count how many of each furniture TYPE appear.
+function tallyPredictions(preds, bump) {
+  const perType = {};
+  for (const p of preds) {
+    const type = COCO_TO_TYPE[p.class];
+    perType[type] = (perType[type] || 0) + 1;
+  }
+  for (const [type, n] of Object.entries(perType)) bump(type, n);
+}
+
+function ensureImageLoaded(img) {
+  return new Promise(res => { if (img.complete && img.naturalWidth) res(); else img.onload = () => res(); });
+}
+
+function sampleVideoFrames(video, n) {
+  return new Promise(async (resolve) => {
+    await new Promise(r => { if (video.readyState >= 1) r(); else video.onloadedmetadata = () => r(); });
+    const dur = video.duration || 0;
+    const c = document.createElement('canvas');
+    const frames = [];
+    const cw = 640, scale = cw / (video.videoWidth || cw);
+    c.width = cw; c.height = (video.videoHeight || 480) * scale;
+    const ctx = c.getContext('2d');
+    for (let i = 0; i < n; i++) {
+      const t = dur ? (dur * (i + 0.5) / n) : 0;
+      await seek(video, t);
+      const snap = document.createElement('canvas');
+      snap.width = c.width; snap.height = c.height;
+      snap.getContext('2d').drawImage(video, 0, 0, snap.width, snap.height);
+      frames.push(snap);
+      if (!dur) break;
+    }
+    resolve(frames);
+  });
+}
+function seek(video, t) {
+  return new Promise(res => {
+    const onSeek = () => { video.removeEventListener('seeked', onSeek); res(); };
+    video.addEventListener('seeked', onSeek);
+    try { video.currentTime = t; } catch { res(); }
+  });
+}
+
+function renderDetection() {
+  const box = document.getElementById('detResults');
+  const addBtn = document.getElementById('addDetectedBtn');
+  const entries = Object.entries(state.detected || {}).filter(([,n]) => n > 0);
+  if (!entries.length) {
+    box.innerHTML = '<p class="hint" style="color:var(--warn)">No furniture-class items detected. Try a clearer/wider shot, or add pieces from the library.</p>';
+    addBtn.style.display = 'none';
+    return;
+  }
+  box.innerHTML = entries.map(([type, n]) =>
+    `<div class="detrow"><span class="name">${CATALOG[type]?.label || type}</span><span class="cnt">×${n}</span></div>`
+  ).join('');
+  addBtn.style.display = 'block';
+}
+
+document.getElementById('addDetectedBtn').addEventListener('click', () => {
+  const entries = Object.entries(state.detected || {});
+  for (const [type, n] of entries) {
+    for (let i = 0; i < n; i++) addItem(type);
+  }
+  selectItem(null);
+});
+
+/* ----------------------------------------------------------------------------
+   Furniture library (left)
+---------------------------------------------------------------------------- */
+function renderLibrary() {
+  const lib = document.getElementById('library');
+  lib.innerHTML = '';
+  const cats = {};
+  for (const [type, def] of Object.entries(CATALOG)) (cats[def.cat] ||= []).push([type, def]);
+  for (const [cat, list] of Object.entries(cats)) {
+    const h = document.createElement('div'); h.className = 'libcat'; h.textContent = cat;
+    h.style.gridColumn = '1 / -1'; lib.appendChild(h);
+    for (const [type, def] of list) {
+      const b = document.createElement('button');
+      b.innerHTML = `<span class="t">${def.label}</span><span class="d">${dimStr(def)}</span>`;
+      b.onclick = () => addItem(type);
+      lib.appendChild(b);
+    }
+  }
+}
+function dimStr(def) {
+  const w = toUnit(def.w), d = toUnit(def.d);
+  return `${num(w)}×${num(d)} ${unitLabel()}`;
+}
+
+/* ----------------------------------------------------------------------------
+   Persistence (localStorage) + export/import
+---------------------------------------------------------------------------- */
+const LS_KEY = 'roomplanner.projects.v1';
+
+function snapshot() {
+  return { name: byId('projName').value || 'My Room', room: state.room, items: state.items, seq: state.seq };
+}
+function loadSnapshot(snap) {
+  state.room = snap.room;
+  state.items = snap.items;
+  state.seq = snap.seq || (Math.max(0, ...state.items.map(i => i.id)) + 1);
+  byId('projName').value = snap.name || 'My Room';
+  selectedId = null;
+  rebuildAll(); renderProps();
+}
+
+let autoTimer = null;
+function saveAuto() { clearTimeout(autoTimer); autoTimer = setTimeout(() => saveProject(true), 400); }
+
+function allProjects() { try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch { return {}; } }
+function saveProject(silent) {
+  const projs = allProjects();
+  const snap = snapshot();
+  projs[snap.name] = snap;
+  localStorage.setItem(LS_KEY, JSON.stringify(projs));
+  refreshLoadList();
+  if (!silent) flash('Saved “' + snap.name + '”');
+}
+function refreshLoadList() {
+  const sel = byId('loadSel');
+  const cur = sel.value;
+  const projs = allProjects();
+  sel.innerHTML = '<option value="">Load…</option>' +
+    Object.keys(projs).map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+  sel.value = cur;
+}
+
+byId('saveBtn').onclick = () => saveProject(false);
+byId('loadSel').onchange = e => {
+  const projs = allProjects();
+  if (projs[e.target.value]) loadSnapshot(clone(projs[e.target.value]));
+};
+byId('newBtn').onclick = () => {
+  if (!confirm('Start a new empty room? Unsaved changes will be lost.')) return;
+  state.items = []; state.room = { w: ft(15), d: ft(12), h: ft(9), floor: '#d8cdbf', wall: '#3a3640' };
+  selectedId = null; rebuildAll(); renderProps();
+};
+
+byId('exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(snapshot(), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (byId('projName').value || 'room') + '.json';
+  a.click();
+};
+const importFile = byId('importFile');
+byId('importBtn').onclick = () => importFile.click();
+importFile.onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => { try { loadSnapshot(JSON.parse(reader.result)); flash('Imported'); } catch { alert('Invalid file'); } };
+  reader.readAsText(f);
+};
+
+/* ----------------------------------------------------------------------------
+   Units toggle + top view
+---------------------------------------------------------------------------- */
+byId('unitFt').onclick = () => setUnit('ft');
+byId('unitM').onclick = () => setUnit('m');
+function setUnit(u) {
+  unit = u;
+  byId('unitFt').classList.toggle('on', u === 'ft');
+  byId('unitM').classList.toggle('on', u === 'm');
+  renderLibrary(); renderProps();
+}
+
+let topView = false;
+byId('topViewBtn').onclick = () => {
+  topView = !topView;
+  if (topView) {
+    const d = Math.max(state.room.w, state.room.d) * 1.1;
+    camera.position.set(0.001, d, 0);
+    controls.target.set(0, 0, 0);
+  } else {
+    camera.position.set(6, 6, 9);
+    recenterTargetMaybe();
+  }
+};
+
+/* ----------------------------------------------------------------------------
+   Helpers + render loop
+---------------------------------------------------------------------------- */
+function byId(id) { return document.getElementById(id); }
+function clone(o) { return typeof structuredClone === 'function' ? structuredClone(o) : JSON.parse(JSON.stringify(o)); }
+function num(v) { return Math.round(v * 100) / 100; }
+function escapeHtml(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function flash(msg) {
+  const d = document.createElement('div');
+  d.textContent = msg;
+  d.style.cssText = 'position:fixed;bottom:18px;right:18px;background:var(--accent-2);color:#fff;padding:8px 14px;border-radius:8px;z-index:20;box-shadow:0 4px 14px rgba(0,0,0,.4)';
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 1600);
+}
+
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== w || canvas.height !== h) {
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+}
+function animate() {
+  requestAnimationFrame(animate);
+  resize();
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* ----------------------------------------------------------------------------
+   Boot
+---------------------------------------------------------------------------- */
+rebuildAll();
+renderLibrary();
+renderProps();
+refreshLoadList();
+animate();
+</script>
+</body>
+</html>
