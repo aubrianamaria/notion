@@ -412,6 +412,58 @@
     .guide ul { margin: 4px 0; padding-left: 20px; display: grid; gap: 5px; }
     .guide li { font-size: .9rem; line-height: 1.45; }
     .guide .welcome-emoji { text-align: center; font-size: 3rem; }
+
+    /* ---------- Weekly planner ---------- */
+    .plan-week { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .plan-week .wk-label { display: flex; flex-direction: column; line-height: 1.1; }
+    .plan-week .wk-label b { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.18rem; }
+    .plan-week .wk-label small { color: var(--muted); font-weight: 700; font-size: .76rem; margin-top: 2px; }
+    .wk-btn { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--card); font-size: 1.05rem; font-weight: 800; color: var(--ink); cursor: pointer; transition: .15s; }
+    .wk-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .wk-today { margin-left: auto; }
+    .plan-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 13px 15px; margin-bottom: 16px; }
+    .ps-stat { font-weight: 700; font-size: .84rem; color: var(--muted); }
+    .ps-stat b { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.25rem; color: var(--ink); margin-right: 4px; }
+    .ps-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+    .day-grid { display: grid; gap: 12px; }
+    @media (min-width: 660px) { .day-grid { grid-template-columns: 1fr 1fr; } }
+    .day-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 12px 14px; }
+    .day-card.today { border-color: var(--accent); box-shadow: 0 0 0 1.5px var(--accent), var(--shadow-sm); }
+    .day-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+    .day-name { font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.06rem; }
+    .day-date { color: var(--muted); font-weight: 700; font-size: .8rem; }
+    .day-today { margin-left: auto; background: var(--accent); color: #fff; font-size: .64rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: .04em; }
+    .slots { display: grid; gap: 7px; }
+    .slot { display: flex; align-items: center; gap: 9px; width: 100%; border-radius: 12px; padding: 9px 11px; font: inherit; }
+    .slot.empty { border: 1.5px dashed #e0d6c6; background: transparent; color: var(--muted); cursor: pointer; font-weight: 700; transition: .15s; }
+    .slot.empty:hover { border-color: var(--accent); color: var(--accent); }
+    .slot.empty .slot-add { margin-left: auto; font-size: 1.15rem; line-height: 1; }
+    .slot.filled { border: 1.5px solid var(--line); background: var(--bg); }
+    .slot .slot-emoji { font-size: 1.05rem; flex: 0 0 auto; }
+    .slot .slot-l { font-weight: 800; font-size: .76rem; color: var(--muted); white-space: nowrap; }
+    .slot-item { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: none; border: none; font: inherit; cursor: pointer; padding: 0; text-align: left; }
+    .si-name { font-weight: 700; font-size: .86rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .si-tag { margin-left: auto; font-size: .66rem; font-weight: 800; padding: 2px 7px; border-radius: 999px; background: #f3ede3; color: #6b6357; white-space: nowrap; flex: 0 0 auto; }
+    .si-tag.ok { background: var(--accent-soft); color: var(--accent); }
+    .si-tag.close { background: #fbe8d8; color: var(--warn); }
+    .slot-x { flex: 0 0 auto; border: none; background: none; color: var(--muted); cursor: pointer; font-size: .9rem; padding: 3px 5px; border-radius: 8px; line-height: 1; }
+    .slot-x:hover { color: #c0392b; background: #fbeaea; }
+    .day-tot { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); color: var(--muted); font-weight: 700; font-size: .76rem; }
+    .day-tot b { color: var(--ink); }
+    /* slot picker */
+    .pick-cur { display: flex; align-items: center; gap: 8px; background: var(--accent-soft); border-radius: 12px; padding: 9px 11px; margin-bottom: 12px; font-weight: 700; font-size: .85rem; color: var(--accent); }
+    .pick-cur .pc-actions { margin-left: auto; display: flex; gap: 6px; flex: 0 0 auto; }
+    .pick-list { display: grid; gap: 7px; max-height: 48vh; overflow-y: auto; padding: 2px; }
+    .pick-grp { font-weight: 800; font-size: .72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 8px 2px 0; }
+    .pick-opt { display: flex; align-items: center; gap: 10px; border: 1.5px solid var(--line); background: var(--card); border-radius: 12px; padding: 9px 11px; cursor: pointer; font: inherit; text-align: left; transition: .12s; }
+    .pick-opt:hover { border-color: var(--accent); }
+    .pick-opt.cur { border-color: var(--accent); background: var(--accent-soft); }
+    .po-emoji { font-size: 1.35rem; flex: 0 0 auto; }
+    .po-name { display: flex; flex-direction: column; min-width: 0; }
+    .po-name b { font-weight: 800; font-size: .88rem; }
+    .po-name small { color: var(--muted); font-weight: 700; font-size: .72rem; }
+    .po-tag { margin-left: auto; font-size: .68rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; background: #f3ede3; color: #6b6357; white-space: nowrap; flex: 0 0 auto; }
+    .po-tag.ok { background: var(--accent-soft); color: var(--accent); }
   </style>
 </head>
 <body>
@@ -491,6 +543,16 @@
       <div id="meals-list"></div>
     </section>
 
+    <!-- PLAN VIEW -->
+    <section class="view" id="view-plan">
+      <div class="view-head">
+        <h2>Meal Plan</h2>
+        <span class="count-pill" id="plan-count">0 planned</span>
+      </div>
+      <div class="tip-slot" id="tip-plan"></div>
+      <div id="plan-body"></div>
+    </section>
+
     <!-- GROCERY VIEW -->
     <section class="view" id="view-grocery">
       <div class="view-head">
@@ -511,6 +573,7 @@
     <button data-view="ingredients"><span class="ic">🧺</span>Pantry</button>
     <button data-view="dishes"><span class="ic">🍳</span><span>Dishes <span class="nav-badge" id="nav-dish-badge" style="display:none">0</span></span></button>
     <button data-view="meals"><span class="ic">🍽️</span><span>Meals <span class="nav-badge" id="nav-meal-badge" style="display:none">0</span></span></button>
+    <button data-view="plan"><span class="ic">📅</span><span>Plan <span class="nav-badge" id="nav-plan-badge" style="display:none">0</span></span></button>
     <button data-view="grocery"><span class="ic">🛒</span><span>List <span class="nav-badge" id="nav-grocery-badge" style="display:none">0</span></span></button>
   </nav>
 
@@ -1254,6 +1317,34 @@
   const LS_GROCERY = 'p2p_grocery_v1';
   let grocery = new Set(JSON.parse(localStorage.getItem(LS_GROCERY) || '[]'));
   function saveGrocery() { localStorage.setItem(LS_GROCERY, JSON.stringify([...grocery])); }
+
+  // ---- weekly meal plan: { 'YYYY-MM-DD': { breakfast:{kind,id}, lunch, dinner, snack } } ----
+  const LS_PLAN = 'p2p_plan_v1';
+  let plan = {};
+  try { plan = JSON.parse(localStorage.getItem(LS_PLAN) || '{}') || {}; } catch (e) { plan = {}; }
+  function savePlan() { localStorage.setItem(LS_PLAN, JSON.stringify(plan)); }
+  let planWeekOffset = 0; // 0 = the week containing today
+  const SLOTS = [
+    { id:'breakfast', label:'Breakfast', emoji:'🌅' },
+    { id:'lunch', label:'Lunch', emoji:'☀️' },
+    { id:'dinner', label:'Dinner', emoji:'🌙' },
+    { id:'snack', label:'Snack', emoji:'🍎' },
+  ];
+  function dateKey(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+  function weekStart(offset) { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - d.getDay() + offset*7); return d; } // Sunday start
+  function weekDays(offset) { const s = weekStart(offset); return Array.from({length:7}, (_,i) => { const x = new Date(s); x.setDate(s.getDate()+i); return x; }); }
+  function getSlot(key, slotId) { return plan[key] && plan[key][slotId]; }
+  function setSlot(key, slotId, ref) {
+    if (ref) { (plan[key] = plan[key] || {})[slotId] = ref; }
+    else if (plan[key]) { delete plan[key][slotId]; if (!Object.keys(plan[key]).length) delete plan[key]; }
+    savePlan();
+  }
+  // resolve a saved slot ref → { kind, item, nutri, status } or null if it was deleted
+  function planItem(ref) {
+    if (!ref) return null;
+    if (ref.kind === 'meal') { const m = meals.find(x => x.id === ref.id); return m ? { kind:'meal', item:m, nutri:mealMeta(m).nutri, status:mealStatus(m) } : null; }
+    const d = DISH_BY_ID[ref.id]; return d ? { kind:'dish', item:d, nutri:d.nutri, status:dishStatus(d) } : null;
+  }
   // tap-cycle a level: full → low → out → full. out adds to list; back to full clears it.
   function cycleLevel(id) {
     const cur = levelOf(id);
@@ -1851,9 +1942,9 @@
      ========================================================= */
   function exportObject() {
     return {
-      app: 'pantry-to-plate', schema: 2, exportedAt: new Date().toISOString(),
+      app: 'pantry-to-plate', schema: 3, exportedAt: new Date().toISOString(),
       catalog: { ingredients, dishes, meals },
-      inventory: inv, grocery: [...grocery], settings: { assumeStaples },
+      inventory: inv, grocery: [...grocery], plan, settings: { assumeStaples },
     };
   }
   function downloadBackup() {
@@ -1872,6 +1963,7 @@
       ingredients = cat.ingredients; dishes = cat.dishes; meals = Array.isArray(cat.meals) ? cat.meals : [];
       inv = (data.inventory && typeof data.inventory === 'object') ? data.inventory : {};
       grocery = new Set(Array.isArray(data.grocery) ? data.grocery : []);
+      plan = (data.plan && typeof data.plan === 'object') ? data.plan : {};
       if (data.settings && typeof data.settings.assumeStaples === 'boolean') assumeStaples = data.settings.assumeStaples;
     } else { // merge: add anything new, keep what's here
       const has = (arr, id) => arr.some(x => x.id === id);
@@ -1880,15 +1972,16 @@
       (cat.meals || []).forEach(m => { if (!has(meals, m.id)) meals.push(m); });
       if (data.inventory) Object.assign(inv, data.inventory);
       (data.grocery || []).forEach(id => grocery.add(id));
+      if (data.plan) Object.keys(data.plan).forEach(k => { plan[k] = Object.assign(plan[k] || {}, data.plan[k]); });
     }
     reindex();
     if (!persist()) return false;
-    saveInv(); saveGrocery(); save();
+    saveInv(); saveGrocery(); savePlan(); save();
     return true;
   }
   function renderAll() {
     document.getElementById('staples-toggle').checked = assumeStaples;
-    renderHome(); renderIngredients(); renderDishes(); renderMeals(); renderGrocery(); updateCounts();
+    renderHome(); renderIngredients(); renderDishes(); renderMeals(); renderPlan(); renderGrocery(); updateCounts();
   }
 
   // pull in any built-in ingredients/dishes/meals you don't have yet, without
@@ -2071,6 +2164,7 @@
     ingredients: 'Tap an item to cycle <b>Full → Low → Out</b>. Out items hop onto your grocery list. Tap ✎ to edit one.',
     dishes: 'Tap a dish for the recipe, or <b>🍳 I made this</b> to log what you used. Add recipes with <b>🔗 Import</b>.',
     meals: 'A meal = a main + sides. The <b>coverage</b> chips show if it’s balanced. Tap <b>➕ Build a meal</b>.',
+    plan: 'Tap any slot to drop in a dish or meal. Then <b>🛒 Add to list</b> sends the week’s missing ingredients to your grocery list.',
     grocery: 'This fills from anything you mark <b>Out</b>. Tap ✓ when you buy it — it restocks to Full.',
   };
   function showTipFor(v) {
@@ -2095,6 +2189,8 @@
         <ul><li>Single recipes — tap one for ingredients (have vs. need), steps, nutrition and baby tips.</li><li><b>🔗 Import recipe</b> from a link or pasted text.</li><li>Tap <b>🍳 I made this</b> after cooking to quickly update what you used.</li></ul>
         <h3>🍽️ Meals</h3>
         <ul><li>Combine a main + sides into a meal. The <b>coverage</b> chips show if it’s balanced (protein, fiber, veggies…).</li><li>Tap <b>➕ Build a meal</b> to make your own.</li></ul>
+        <h3>📅 Plan</h3>
+        <ul><li>Plan the week — tap any breakfast, lunch, dinner or snack slot to drop in a dish or meal.</li><li>Each day totals its calories &amp; protein; <b>🛒 Add to list</b> sends the week’s missing ingredients to your grocery list.</li><li><b>🎲 Fill gaps</b> auto-fills empty slots with random dishes.</li></ul>
         <h3>🛒 List</h3>
         <ul><li>Fills automatically from anything marked <b>Out</b>. Tap <b>✓</b> when you buy it (restocks to Full).</li><li>Quick-add anything at the top.</li></ul>
         <h3>🎯 Goals &amp; 👶 Baby</h3>
@@ -2143,7 +2239,7 @@
   /* guided spotlight tour */
   const TOUR = [
     { view:'home', sel:null, title:'Welcome to Pantry → Plate', text:'A quick tour of how it all fits together. You can skip anytime.' },
-    { view:'home', sel:'nav.tabs', title:'Five sections', text:'Home, Pantry, Dishes, Meals and your grocery List — switch between them down here.' },
+    { view:'home', sel:'nav.tabs', title:'Six sections', text:'Home, Pantry, Dishes, Meals, your weekly Plan and the grocery List — switch between them down here.' },
     { view:'home', sel:'#hero-card', title:'Meal of the Day', text:'Your daily pick, favouring something you can cook right now. Tap it for the full recipe.' },
     { view:'ingredients', sel:'.lvl-legend', title:'Track what you have', text:'Tap any ingredient to cycle Full → Low → Out. Anything “Out” jumps onto your grocery list.' },
     { view:'ingredients', sel:'#quick-add', title:'Add in bulk', text:'Type or dictate a whole list at once — perfect for a first kitchen stock-up.' },
@@ -2397,7 +2493,7 @@
      ========================================================= */
   function switchView(v) {
     currentView = v;
-    ['home','ingredients','dishes','meals','grocery'].forEach(name =>
+    ['home','ingredients','dishes','meals','plan','grocery'].forEach(name =>
       document.getElementById('view-' + name).classList.toggle('active', v === name));
     document.getElementById('goals').style.display = (v === 'dishes' || v === 'meals') ? 'flex' : 'none';
     document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.view===v));
@@ -2405,6 +2501,7 @@
     if (v==='home') renderHome();
     if (v==='dishes') renderDishes();
     if (v==='meals') renderMeals();
+    if (v==='plan') renderPlan();
     if (v==='grocery') renderGrocery();
     showTipFor(v);
   }
@@ -2415,11 +2512,13 @@
   function updateCounts() {
     setBadge('nav-dish-badge', dishes.filter(d => dishStatus(d).ready).length);
     setBadge('nav-meal-badge', meals.filter(m => mealStatus(m).ready).length);
+    setBadge('nav-plan-badge', plannedCountFor([new Date()]));
     setBadge('nav-grocery-badge', [...grocery].filter(id => ING_BY_ID[id]).length);
     document.getElementById('pantry-count').textContent = `${onHandCount()} on hand`;
     if (currentView === 'home') renderHome();
     if (currentView === 'dishes') renderDishes();
     if (currentView === 'meals') renderMeals();
+    if (currentView === 'plan') renderPlan();
     if (currentView === 'grocery') renderGrocery();
   }
 
@@ -2660,6 +2759,171 @@
   }
 
   /* =========================================================
+     RENDER — weekly meal plan
+     ========================================================= */
+  const monShort = d => d.toLocaleDateString(undefined, { month:'short' });
+  function planSlotTag(st) {
+    if (!st || st.total === 0) return { cls:'', txt:'—' };
+    if (st.ready) return { cls:'ok', txt:'✓ have it' };
+    return { cls: st.missing.length <= 2 ? 'close' : '', txt: `${st.missing.length} to buy` };
+  }
+  // ingredient ids needed (not on hand, non-staple) across the visible week
+  function weekNeeds(days) {
+    const need = new Set();
+    days.forEach(d => { const day = plan[dateKey(d)]; if (!day) return;
+      SLOTS.forEach(s => { const r = planItem(day[s.id]); if (r) r.status.missing.forEach(id => need.add(id)); });
+    });
+    return need;
+  }
+  function plannedCountFor(days) {
+    return days.reduce((n, d) => { const day = plan[dateKey(d)]; return n + (day ? SLOTS.filter(s => planItem(day[s.id])).length : 0); }, 0);
+  }
+  function renderPlan() {
+    const body = document.getElementById('plan-body');
+    const days = weekDays(planWeekOffset);
+    const a = days[0], b = days[6], todayK = dateKey(new Date());
+    const range = a.getMonth() === b.getMonth()
+      ? `${monShort(a)} ${a.getDate()}–${b.getDate()}` : `${monShort(a)} ${a.getDate()} – ${monShort(b)} ${b.getDate()}`;
+    const rel = planWeekOffset === 0 ? 'This week' : planWeekOffset === 1 ? 'Next week' : planWeekOffset === -1 ? 'Last week'
+      : (planWeekOffset > 0 ? `In ${planWeekOffset} weeks` : `${-planWeekOffset} weeks ago`);
+    const planned = plannedCountFor(days);
+    const need = weekNeeds(days);
+
+    const dayCards = days.map(d => {
+      const key = dateKey(d), isToday = key === todayK;
+      const day = plan[key] || {};
+      let kcal = 0, protein = 0, any = false;
+      const slotRows = SLOTS.map(s => {
+        const r = planItem(day[s.id]);
+        if (!r) return `<button class="slot empty" data-key="${key}" data-slot="${s.id}"><span class="slot-emoji">${s.emoji}</span><span class="slot-l">${s.label}</span><span class="slot-add">＋</span></button>`;
+        any = true; kcal += r.nutri.kcal || 0; protein += r.nutri.protein || 0;
+        const t = planSlotTag(r.status);
+        return `<div class="slot filled"><span class="slot-emoji">${s.emoji}</span>
+          <button class="slot-item" data-key="${key}" data-slot="${s.id}"><span class="si-name">${esc(r.item.name)}</span><span class="si-tag ${t.cls}">${t.txt}</span></button>
+          <button class="slot-x" data-key="${key}" data-slot="${s.id}" title="Remove">✕</button></div>`;
+      }).join('');
+      const tot = any ? `<div class="day-tot"><b>${kcal}</b> cal · <b>${protein}g</b> protein planned</div>` : '';
+      return `<div class="day-card ${isToday?'today':''}">
+        <div class="day-head"><span class="day-name">${d.toLocaleDateString(undefined,{weekday:'long'})}</span><span class="day-date">${monShort(d)} ${d.getDate()}</span>${isToday?'<span class="day-today">Today</span>':''}</div>
+        <div class="slots">${slotRows}</div>${tot}</div>`;
+    }).join('');
+
+    body.innerHTML = `
+      <div class="plan-week">
+        <button class="wk-btn" id="wk-prev" title="Previous week">‹</button>
+        <div class="wk-label"><b>${range}</b><small>${rel}</small></div>
+        <button class="wk-btn" id="wk-next" title="Next week">›</button>
+        ${planWeekOffset !== 0 ? '<button class="btn ghost wk-today" id="wk-today">Today</button>' : ''}
+      </div>
+      <div class="plan-summary">
+        <span class="ps-stat"><b>${planned}</b>meal${planned!==1?'s':''} planned</span>
+        <span class="ps-stat"><b>${need.size}</b>to buy</span>
+        <div class="ps-actions">
+          <button class="btn" id="plan-shop"${need.size?'':' disabled style="opacity:.5"'}>🛒 Add to list</button>
+          <button class="btn ghost" id="plan-fill">🎲 Fill gaps</button>
+          ${planned ? '<button class="btn ghost" id="plan-clear">Clear</button>' : ''}
+        </div>
+      </div>
+      <div class="day-grid">${dayCards}</div>`;
+
+    document.getElementById('plan-count').textContent = `${planned} planned`;
+    body.querySelector('#wk-prev').onclick = () => { planWeekOffset--; renderPlan(); };
+    body.querySelector('#wk-next').onclick = () => { planWeekOffset++; renderPlan(); };
+    const todayBtn = body.querySelector('#wk-today'); if (todayBtn) todayBtn.onclick = () => { planWeekOffset = 0; renderPlan(); };
+    body.querySelectorAll('.slot.empty, .slot-item').forEach(el => el.onclick = () => openSlotPicker(el.dataset.key, el.dataset.slot));
+    body.querySelectorAll('.slot-x').forEach(x => x.onclick = (e) => { e.stopPropagation(); setSlot(x.dataset.key, x.dataset.slot, null); renderPlan(); updateCounts(); });
+    const shop = body.querySelector('#plan-shop'); if (shop && need.size) shop.onclick = () => shopWeek(days);
+    body.querySelector('#plan-fill').onclick = () => fillGaps(days);
+    const clr = body.querySelector('#plan-clear'); if (clr) clr.onclick = () => clearWeek(days);
+  }
+  function openSlotPicker(key, slotId) {
+    const slot = SLOTS.find(s => s.id === slotId) || SLOTS[0];
+    const dObj = new Date(key + 'T00:00:00');
+    const dateLbl = dObj.toLocaleDateString(undefined, { weekday:'long', month:'short', day:'numeric' });
+    const cur = getSlot(key, slotId), curR = planItem(cur);
+    // build the option pool: dishes + meals, type-matched first, then ready, then name
+    const opts = [
+      ...dishes.map(d => ({ kind:'dish', item:d, nutri:d.nutri, status:dishStatus(d), typeMatch: d.type === slotId })),
+      ...meals.map(m => ({ kind:'meal', item:m, nutri:mealMeta(m).nutri, status:mealStatus(m), typeMatch: slotId === 'dinner' || slotId === 'lunch' })),
+    ];
+    const el = document.getElementById('modal');
+    const renderList = (q) => {
+      q = (q || '').trim().toLowerCase();
+      let list = opts.filter(o => !q || o.item.name.toLowerCase().includes(q));
+      list.sort((x, y) => (Number(y.typeMatch) - Number(x.typeMatch)) || (Number(y.status.ready) - Number(x.status.ready)) || x.item.name.localeCompare(y.item.name));
+      if (!list.length) return '<div class="hint" style="padding:10px">No dishes or meals match.</div>';
+      let html = '', lastGrp = null;
+      list.forEach(o => {
+        const grp = o.typeMatch ? `Suggested for ${slot.label.toLowerCase()}` : 'Everything else';
+        if (grp !== lastGrp) { html += `<div class="pick-grp">${grp}</div>`; lastGrp = grp; }
+        const isCur = cur && cur.kind === o.kind && cur.id === o.item.id;
+        const t = planSlotTag(o.status);
+        html += `<button class="pick-opt ${isCur?'cur':''}" data-kind="${o.kind}" data-id="${o.item.id}">
+          <span class="po-emoji">${o.item.emoji || (o.kind==='meal'?'🍽️':'🍴')}</span>
+          <span class="po-name"><b>${esc(o.item.name)}</b><small>${o.kind==='meal'?'Meal':o.item.type} · ${o.nutri.protein}g · ${o.nutri.kcal} cal</small></span>
+          <span class="po-tag ${t.cls}">${t.txt}</span></button>`;
+      });
+      return html;
+    };
+    el.innerHTML = `
+      <div class="editor">
+        <h2>${slot.emoji} ${slot.label}</h2>
+        <p class="view-note">${dateLbl}</p>
+        ${curR ? `<div class="pick-cur"><span>Now: ${esc(curR.item.name)}</span><span class="pc-actions">
+            <button class="btn ghost" id="pick-view">View recipe</button>
+            <button class="btn ghost" id="pick-remove">Remove</button></span></div>` : ''}
+        <label class="search" style="margin-bottom:10px">🔍 <input id="pick-search" placeholder="Search dishes & meals…" autocomplete="off"></label>
+        <div class="pick-list" id="pick-list">${renderList('')}</div>
+        <div class="btn-row"><button class="btn-cancel" id="pick-cancel">Cancel</button></div>
+      </div>`;
+    openModalShell();
+    const listEl = el.querySelector('#pick-list');
+    const wire = () => listEl.querySelectorAll('.pick-opt').forEach(o => o.onclick = () => {
+      setSlot(key, slotId, { kind:o.dataset.kind, id:o.dataset.id });
+      closeModal(); renderPlan(); updateCounts(); toast(`Added to ${slot.label.toLowerCase()} 📅`);
+    });
+    wire();
+    el.querySelector('#pick-search').oninput = (e) => { listEl.innerHTML = renderList(e.target.value); wire(); };
+    el.querySelector('#pick-cancel').onclick = closeModal;
+    if (curR) {
+      el.querySelector('#pick-remove').onclick = () => { setSlot(key, slotId, null); closeModal(); renderPlan(); updateCounts(); };
+      el.querySelector('#pick-view').onclick = () => { closeModal(); (curR.kind === 'meal' ? openMealModal : openDishModal)(curR.item.id); };
+    }
+  }
+
+  function shopWeek(days) {
+    const need = weekNeeds(days);
+    let added = 0;
+    need.forEach(id => { if (!grocery.has(id)) { grocery.add(id); added++; } });
+    saveGrocery();
+    renderGrocery(); renderIngredients(); updateCounts();
+    toast(added ? `Added ${added} item${added!==1?'s':''} to your list 🛒` : 'Those are already on your list 👍');
+  }
+  function fillGaps(days) {
+    const empties = [];
+    days.forEach(d => { const key = dateKey(d); SLOTS.forEach(s => { if (!planItem(getSlot(key, s.id))) empties.push({ key, slot:s.id }); }); });
+    if (!empties.length) { toast('Every slot is already planned 🎉'); return; }
+    if (!confirm(`Fill ${empties.length} empty slot${empties.length!==1?'s':''} with random dishes for this week?`)) return;
+    const pickFor = slotId => {
+      const ofType = dishes.filter(d => d.type === slotId);
+      const pool = ofType.length ? ofType : dishes.filter(d => d.type !== 'side');
+      if (!pool.length) return null;
+      const ready = pool.filter(d => dishStatus(d).ready);
+      const from = ready.length ? ready : pool;
+      return from[Math.floor(Math.random() * from.length)];
+    };
+    let n = 0;
+    empties.forEach(({ key, slot }) => { const d = pickFor(slot); if (d) { setSlot(key, slot, { kind:'dish', id:d.id }); n++; } });
+    renderPlan(); updateCounts();
+    toast(n ? `Filled ${n} slot${n!==1?'s':''} 🎲` : 'Add some dishes first 🍳');
+  }
+  function clearWeek(days) {
+    if (!confirm('Clear every meal planned for this week?')) return;
+    days.forEach(d => { delete plan[dateKey(d)]; });
+    savePlan(); renderPlan(); updateCounts();
+  }
+
+  /* =========================================================
      WIRE UP
      ========================================================= */
   document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => switchView(b.dataset.view));
@@ -2692,6 +2956,7 @@
   renderIngredients();
   renderDishes();
   renderMeals();
+  renderPlan();
   renderGrocery();
   updateCounts();
   document.getElementById('help-btn').onclick = () => openHelp();
